@@ -2,6 +2,7 @@
 deploy.php
 /11
 ###> symfony/framework-bundle ###
+/.env
 /.env.local
 /.env.local.php
 /.env.*.local

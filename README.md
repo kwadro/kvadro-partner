@@ -41,13 +41,15 @@ Affiliate / referral program built with **Symfony 7.4**. Partners create referra
 - Symfony 7.4
 - Doctrine ORM
 - Twig + Asset Mapper + Stimulus
-- SQLite by default (`DATABASE_URL` in `.env`)
+- MySQL 8 (`DATABASE_URL` in `.env`, port 3309)
 
 ## Quick start
 
 ```bash
 composer install
-# check .env: DATABASE_URL, APP_SECRET
+# .env DATABASE_URL (MySQL 8 on port 3309):
+# mysql://root:root@127.0.0.1:3309/kwadro_partner?serverVersion=8.0.34&charset=utf8mb4
+php bin/console doctrine:database:create --if-not-exists
 php bin/console doctrine:schema:update --force
 php bin/console app:create-admin --email=admin@example.com --password=admin123
 php -S 127.0.0.1:8000 -t public
@@ -176,4 +178,4 @@ translations/
 
 - UI copy and translation keys live in `translations/`
 - Update DB schema in dev: `php bin/console doctrine:schema:update --force`
-- For production, switch to PostgreSQL/MySQL and Doctrine Migrations
+- Prefer Doctrine Migrations for production schema changes
