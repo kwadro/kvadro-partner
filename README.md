@@ -61,7 +61,13 @@ Open: http://127.0.0.1:8000
 
 ```bash
 # create / update an administrator
-php bin/console app:create-admin --email=admin@example.com --password=secret123
+php bin/console app:create-admin --email=admin@example.com --password=admin123
+
+# create / update the default partner customer (partner@example.com / partner123)
+php bin/console app:create-customer
+
+# optional overrides:
+# php bin/console app:create-customer --email=user@example.com --password=secret123 --name="Jane Doe" --balance=50
 
 # (optional) legacy PartnerSite demo seed
 php bin/console app:seed-partner-sites
