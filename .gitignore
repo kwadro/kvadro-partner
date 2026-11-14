@@ -1,3 +1,5 @@
+.env-live.local
+deploy.php
 /11
 ###> symfony/framework-bundle ###
 /.env.local
