@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+
+{% block body_class %}page-cabinet{% endblock %}
+
+{% block body %}
+<div class="cabinet-shell">
+    <aside class="cabinet-sidebar">
+        <div class="sidebar-brand">
+            <p class="brand"><a href="{{ path('app_home') }}">{{ 'brand'|trans }}</a></p>
+            <p class="sidebar-caption">{{ 'cabinet.caption'|trans }}</p>
+        </div>
+
+        <nav class="cabinet-nav">
+            <a href="{{ path('app_cabinet') }}" class="nav-item{% if active_menu == 'account' %} is-active{% endif %}">{{ 'cabinet.menu.account'|trans }}</a>
+            <a href="{{ path('app_cabinet_links') }}" class="nav-item{% if active_menu == 'links' %} is-active{% endif %}">{{ 'cabinet.menu.links'|trans }}</a>
+            <a href="{{ path('app_cabinet_finance') }}" class="nav-item{% if active_menu == 'finance' %} is-active{% endif %}">{{ 'cabinet.menu.finance'|trans }}</a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <a href="{{ path('app_logout') }}" class="nav-item nav-logout">{{ 'nav.logout'|trans }}</a>
+        </div>
+    </aside>
+
+    <main class="cabinet-content">
+        {% block cabinet_content %}{% endblock %}
+    </main>
+</div>
+{% endblock %}

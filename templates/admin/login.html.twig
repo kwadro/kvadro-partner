@@ -1,0 +1,41 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'admin.login.title'|trans }}{% endblock %}
+{% block body_class %}page-auth{% endblock %}
+
+{% block body %}
+<div class="auth-shell">
+    <div class="auth-panel">
+        <p class="brand"><a href="{{ path('app_home') }}">{{ 'brand'|trans }}</a></p>
+        <h1>{{ 'admin.login.heading'|trans }}</h1>
+        <p class="auth-lead">{{ 'admin.login.lead'|trans }}</p>
+
+        {% for message in app.flashes('error') %}
+            <div class="flash flash-error">{{ message|trans }}</div>
+        {% endfor %}
+
+        {% if error %}
+            <div class="flash flash-error">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+        {% endif %}
+
+        <form method="post" class="auth-form" action="{{ path('app_admin_login') }}">
+            <label for="email">{{ 'admin.login.email'|trans }}</label>
+            <input type="email" id="email" name="email" value="{{ last_username }}" required autofocus autocomplete="username">
+
+            <label for="password">{{ 'admin.login.password'|trans }}</label>
+            <input type="password" id="password" name="password" required autocomplete="current-password">
+
+            <label class="checkbox-row">
+                <input type="checkbox" name="_remember_me">
+                <span>{{ 'admin.login.remember_me'|trans }}</span>
+            </label>
+
+            <input type="hidden" name="_csrf_token" data-controller="csrf-protection" value="{{ csrf_token('authenticate') }}">
+
+            <button type="submit" class="btn btn-primary">{{ 'admin.login.submit'|trans }}</button>
+        </form>
+
+        <p class="auth-footer"><a class="btn btn-secondary" href="{{ path('app_home') }}">{{ 'nav.back_home'|trans }}</a></p>
+    </div>
+</div>
+{% endblock %}

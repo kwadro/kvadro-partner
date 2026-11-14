@@ -1,0 +1,34 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'home.title'|trans }}{% endblock %}
+{% block body_class %}page-home{% endblock %}
+
+{% block body %}
+<div class="home-shell">
+    <header class="home-top">
+        <p class="brand">{{ 'brand'|trans }}</p>
+        <nav class="home-nav">
+            {% if app.user %}
+                <a href="{{ path('app_cabinet') }}">{{ 'nav.cabinet'|trans }}</a>
+            {% else %}
+                <a href="{{ path('app_login') }}">{{ 'nav.login'|trans }}</a>
+            {% endif %}
+        </nav>
+    </header>
+
+    <main class="home-hero">
+        <p class="brand brand-hero">{{ 'brand'|trans }}</p>
+        <h1>{{ 'home.headline'|trans }}</h1>
+        <p class="home-lead">{{ 'home.lead'|trans }}</p>
+
+        <div class="home-actions">
+            {% if app.user %}
+                <a class="btn btn-primary" href="{{ path('app_cabinet') }}">{{ 'home.cabinet_button'|trans }}</a>
+            {% else %}
+                <a class="btn btn-primary" href="{{ path('app_register') }}">{{ 'home.register_button'|trans }}</a>
+                <a class="home-secondary" href="{{ path('app_login') }}">{{ 'home.login_link'|trans }}</a>
+            {% endif %}
+        </div>
+    </main>
+</div>
+{% endblock %}

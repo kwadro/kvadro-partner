@@ -1,0 +1,37 @@
+{% extends 'cabinet/layout.html.twig' %}
+
+{% block title %}{{ 'cabinet.account.title'|trans }}{% endblock %}
+
+{% block cabinet_content %}
+<header class="content-header">
+    <h1>{{ 'cabinet.account.heading'|trans }}</h1>
+    <p>{{ 'cabinet.account.lead'|trans }}</p>
+</header>
+
+<section class="content-section">
+    <dl class="info-grid">
+        <div>
+            <dt>{{ 'cabinet.account.full_name'|trans }}</dt>
+            <dd>{{ user.fullName }}</dd>
+        </div>
+        <div>
+            <dt>{{ 'cabinet.account.email'|trans }}</dt>
+            <dd>{{ user.email }}</dd>
+        </div>
+        <div>
+            <dt>{{ 'cabinet.account.phone'|trans }}</dt>
+            <dd>{{ user.phone ?: '—' }}</dd>
+        </div>
+        <div>
+            <dt>{{ 'cabinet.account.member_since'|trans }}</dt>
+            <dd>{{ user.createdAt|date('Y-m-d') }}</dd>
+        </div>
+    </dl>
+
+    <div class="balance-box">
+        <p class="balance-label">{{ 'cabinet.account.balance'|trans }}</p>
+        <p class="balance-value">{{ user.balance }} {{ 'cabinet.account.currency'|trans }}</p>
+        <p class="balance-note">{{ 'cabinet.account.balance_note'|trans }}</p>
+    </div>
+</section>
+{% endblock %}

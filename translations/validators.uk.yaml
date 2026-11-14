@@ -1,0 +1,6 @@
+form.email_exists: 'Акаунт з таким email уже існує.'
+form.password_blank: 'Будь ласка, введіть пароль.'
+form.password_min: 'Пароль має містити щонайменше {{ limit }} символів.'
+form.password_mismatch: 'Паролі мають збігатися.'
+admin.cabinet.partners.form.name_required: 'Вкажіть назву партнера.'
+admin.cabinet.partners.form.url_required: 'Вкажіть URL сайту.'

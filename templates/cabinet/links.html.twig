@@ -1,0 +1,152 @@
+{% extends 'cabinet/layout.html.twig' %}
+
+{% block title %}{{ 'cabinet.links.title'|trans }}{% endblock %}
+
+{% block cabinet_content %}
+<div
+    data-controller="link-form"
+    data-link-form-check-url-value="{{ path('app_cabinet_link_check_key') }}"
+    data-link-form-create-url-value="{{ path('app_cabinet_link_create') }}"
+    data-link-form-detail-url-template-value="{{ path('app_cabinet_links') }}/__ID__"
+    data-link-form-delete-url-template-value="{{ path('app_cabinet_links') }}/__ID__/delete"
+    data-link-form-empty-text-value="{{ 'cabinet.links.empty'|trans }}"
+    data-link-form-currency-value="{{ 'cabinet.account.currency'|trans }}"
+    data-link-form-msg-key-available-value="{{ 'cabinet.links.popup.key_available'|trans }}"
+    data-link-form-msg-key-taken-value="{{ 'cabinet.links.popup.key_taken'|trans }}"
+    data-link-form-msg-key-required-value="{{ 'cabinet.links.popup.key_required'|trans }}"
+    data-link-form-msg-key-invalid-value="{{ 'cabinet.links.popup.key_invalid'|trans }}"
+    data-link-form-msg-partner-required-value="{{ 'cabinet.links.popup.partner_required'|trans }}"
+    data-link-form-msg-unsaved-value="{{ 'cabinet.links.popup.unsaved'|trans }}"
+    data-link-form-msg-saved-value="{{ 'cabinet.links.popup.saved'|trans }}"
+    data-link-form-msg-error-value="{{ 'cabinet.links.popup.error'|trans }}"
+    data-link-form-msg-open-value="{{ 'cabinet.links.open'|trans }}"
+    data-link-form-msg-delete-value="{{ 'cabinet.links.delete_button'|trans }}"
+    data-link-form-msg-delete-confirm-value="{{ 'cabinet.links.delete_confirm'|trans }}"
+    data-link-form-msg-delete-success-value="{{ 'cabinet.links.delete.success'|trans }}"
+    data-link-form-msg-delete-forbidden-value="{{ 'cabinet.links.delete.forbidden'|trans }}"
+    data-link-form-msg-delete-not-found-value="{{ 'cabinet.links.delete.not_found'|trans }}"
+>
+    <header class="content-header">
+        <h1>{{ 'cabinet.links.heading'|trans }}</h1>
+        <p>{{ 'cabinet.links.lead'|trans }}</p>
+    </header>
+
+    <section class="content-section">
+        <div class="toolbar">
+            <button type="button" class="btn btn-primary" data-action="link-form#open">
+                {{ 'cabinet.links.create'|trans }}
+            </button>
+        </div>
+
+        <p class="list-status is-hidden" data-link-form-target="listStatus"></p>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>{{ 'cabinet.links.partner'|trans }}</th>
+                    <th>{{ 'cabinet.links.key'|trans }}</th>
+                    <th>{{ 'cabinet.links.url'|trans }}</th>
+                    <th>{{ 'cabinet.links.clicks'|trans }}</th>
+                    <th>{{ 'cabinet.links.orders'|trans }}</th>
+                    <th>{{ 'cabinet.links.reward'|trans }}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody data-link-form-target="tableBody">
+                {% for link in links %}
+                    <tr data-link-id="{{ link.id }}">
+                        <td>{{ link.partner.name }}</td>
+                        <td>{{ link.linkKey }}</td>
+                        <td class="url-cell">{{ link.url }}</td>
+                        <td>{{ link.clicks }}</td>
+                        <td>{{ link.orders }}</td>
+                        <td>{{ link.reward }} {{ 'cabinet.account.currency'|trans }}</td>
+                        <td class="row-actions">
+                            <a href="{{ path('app_cabinet_link_show', { id: link.id }) }}">{{ 'cabinet.links.open'|trans }}</a>
+                            <button
+                                type="button"
+                                class="btn-link-danger"
+                                data-action="link-form#deleteLink"
+                                data-link-id="{{ link.id }}"
+                            >{{ 'cabinet.links.delete_button'|trans }}</button>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr data-link-form-target="emptyRow">
+                        <td colspan="7">{{ 'cabinet.links.empty'|trans }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <div class="modal-backdrop is-hidden" data-link-form-target="modal" data-action="click->link-form#backdropClose">
+        <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="create-link-title" data-action="click->link-form#stopPropagation">
+            <h2 id="create-link-title">{{ 'cabinet.links.popup.title'|trans }}</h2>
+
+            <form class="modal-form" data-link-form-target="form" data-action="submit->link-form#save">
+                <label for="partner-select">{{ 'cabinet.links.popup.partner'|trans }}</label>
+                <select
+                    id="partner-select"
+                    data-link-form-target="partnerSelect"
+                    data-action="change->link-form#onChange"
+                    required
+                >
+                    <option value="">{{ 'cabinet.links.popup.partner_placeholder'|trans }}</option>
+                    {% for partner in partners %}
+                        <option value="{{ partner.id }}" data-url="{{ partner.url }}">
+                            {{ partner.name }} — {{ partner.url }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <label for="link-key">{{ 'cabinet.links.popup.key'|trans }}</label>
+                <div class="key-row">
+                    <input
+                        type="text"
+                        id="link-key"
+                        data-link-form-target="keyInput"
+                        data-action="input->link-form#onChange"
+                        placeholder="{{ 'cabinet.links.popup.key_placeholder'|trans }}"
+                        maxlength="64"
+                        autocomplete="off"
+                        required
+                    >
+                    <button type="button" class="btn btn-secondary btn-compact" data-action="link-form#checkKey">
+                        {{ 'cabinet.links.popup.check'|trans }}
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-compact" data-action="link-form#generateKey">
+                        {{ 'cabinet.links.popup.generate'|trans }}
+                    </button>
+                </div>
+
+                <p class="field-status" data-link-form-target="status"></p>
+
+                <label>{{ 'cabinet.links.popup.result'|trans }}</label>
+                <p class="preview-url mono" data-link-form-target="preview">—</p>
+
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">{{ 'cabinet.links.popup.save'|trans }}</button>
+                    <button type="button" class="btn btn-secondary" data-action="link-form#requestClose">
+                        {{ 'cabinet.links.popup.close'|trans }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-backdrop is-hidden" data-link-form-target="confirmModal" data-action="click->link-form#stopPropagation">
+        <div class="modal-panel modal-panel-sm" role="dialog" aria-modal="true">
+            <p class="confirm-text">{{ 'cabinet.links.popup.unsaved'|trans }}</p>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-primary" data-action="link-form#confirmClose">
+                    {{ 'cabinet.links.popup.confirm_close'|trans }}
+                </button>
+                <button type="button" class="btn btn-secondary" data-action="link-form#cancelClose">
+                    {{ 'cabinet.links.popup.cancel'|trans }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

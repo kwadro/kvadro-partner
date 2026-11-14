@@ -1,0 +1,3 @@
+'Invalid credentials.': 'Невірний email або пароль.'
+'Invalid CSRF token.': 'Недійсний CSRF-токен. Спробуйте ще раз.'
+'Bad credentials.': 'Невірний email або пароль.'

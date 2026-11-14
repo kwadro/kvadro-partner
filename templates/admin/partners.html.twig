@@ -1,0 +1,170 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}{{ 'admin.cabinet.partners.title'|trans }}{% endblock %}
+
+{% block admin_content %}
+<div
+    data-controller="partner-form"
+    data-partner-form-create-url-value="{{ path('app_admin_partners_create') }}"
+    data-partner-form-update-url-template-value="{{ path('app_admin_partners') }}/__ID__/update"
+    data-partner-form-delete-url-template-value="{{ path('app_admin_partners') }}/__ID__/delete"
+    data-partner-form-empty-text-value="{{ 'admin.cabinet.partners.empty'|trans }}"
+    data-partner-form-msg-name-required-value="{{ 'admin.cabinet.partners.form.name_required'|trans }}"
+    data-partner-form-msg-url-required-value="{{ 'admin.cabinet.partners.form.url_required'|trans }}"
+    data-partner-form-msg-email-invalid-value="{{ 'admin.cabinet.partners.form.email_invalid'|trans }}"
+    data-partner-form-msg-unsaved-value="{{ 'admin.cabinet.partners.form.unsaved'|trans }}"
+    data-partner-form-msg-created-value="{{ 'admin.cabinet.partners.created'|trans }}"
+    data-partner-form-msg-updated-value="{{ 'admin.cabinet.partners.updated'|trans }}"
+    data-partner-form-msg-deleted-value="{{ 'admin.cabinet.partners.deleted'|trans }}"
+    data-partner-form-msg-delete-forbidden-value="{{ 'admin.cabinet.partners.delete_forbidden'|trans }}"
+    data-partner-form-msg-delete-confirm-value="{{ 'admin.cabinet.partners.delete_confirm'|trans }}"
+    data-partner-form-msg-not-found-value="{{ 'admin.cabinet.partners.not_found'|trans }}"
+    data-partner-form-msg-error-value="{{ 'admin.cabinet.partners.form.error'|trans }}"
+    data-partner-form-msg-edit-value="{{ 'admin.cabinet.partners.edit'|trans }}"
+    data-partner-form-msg-delete-value="{{ 'admin.cabinet.partners.delete'|trans }}"
+    data-partner-form-msg-create-title-value="{{ 'admin.cabinet.partners.popup_title'|trans }}"
+    data-partner-form-msg-edit-title-value="{{ 'admin.cabinet.partners.edit_title'|trans }}"
+>
+    <header class="content-header">
+        <h1>{{ 'admin.cabinet.partners.heading'|trans }}</h1>
+        <p>{{ 'admin.cabinet.partners.lead'|trans }}</p>
+    </header>
+
+    <section class="content-section">
+        <div class="toolbar">
+            <button type="button" class="btn btn-primary" data-action="partner-form#openCreate">
+                {{ 'admin.cabinet.partners.add'|trans }}
+            </button>
+        </div>
+
+        <p class="list-status is-hidden" data-partner-form-target="listStatus"></p>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>{{ 'admin.cabinet.partners.id'|trans }}</th>
+                    <th>{{ 'admin.cabinet.partners.name'|trans }}</th>
+                    <th>{{ 'admin.cabinet.partners.url'|trans }}</th>
+                    <th>{{ 'admin.cabinet.partners.email'|trans }}</th>
+                    <th>{{ 'admin.cabinet.partners.phone'|trans }}</th>
+                    <th>{{ 'admin.cabinet.partners.created_at'|trans }}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody data-partner-form-target="tableBody">
+                {% for partner in partners %}
+                    <tr
+                        data-partner-id="{{ partner.id }}"
+                        data-partner-name="{{ partner.name }}"
+                        data-partner-url="{{ partner.url }}"
+                        data-partner-email="{{ partner.email|default('') }}"
+                        data-partner-phone="{{ partner.phone|default('') }}"
+                        data-partner-created="{{ partner.createdAt|date('Y-m-d') }}"
+                    >
+                        <td>#{{ partner.id }}</td>
+                        <td data-field="name">{{ partner.name }}</td>
+                        <td class="url-cell" data-field="url">{{ partner.url }}</td>
+                        <td data-field="email">{{ partner.email ?: '—' }}</td>
+                        <td data-field="phone">{{ partner.phone ?: '—' }}</td>
+                        <td data-field="created">{{ partner.createdAt|date('Y-m-d') }}</td>
+                        <td class="row-actions">
+                            <button
+                                type="button"
+                                class="btn-link-action"
+                                data-action="partner-form#openEdit"
+                                data-partner-id="{{ partner.id }}"
+                            >{{ 'admin.cabinet.partners.edit'|trans }}</button>
+                            <button
+                                type="button"
+                                class="btn-link-danger"
+                                data-action="partner-form#deletePartner"
+                                data-partner-id="{{ partner.id }}"
+                            >{{ 'admin.cabinet.partners.delete'|trans }}</button>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr data-partner-form-target="emptyRow">
+                        <td colspan="7">{{ 'admin.cabinet.partners.empty'|trans }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <div class="modal-backdrop is-hidden" data-partner-form-target="modal" data-action="click->partner-form#backdropClose">
+        <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="partner-form-title" data-action="click->partner-form#stopPropagation">
+            <h2 id="partner-form-title" data-partner-form-target="modalTitle">{{ 'admin.cabinet.partners.popup_title'|trans }}</h2>
+
+            <form class="modal-form" data-partner-form-target="form" data-action="submit->partner-form#save">
+                <input type="hidden" data-partner-form-target="idInput" value="">
+
+                <label for="partner-name">{{ 'admin.cabinet.partners.form.name'|trans }}</label>
+                <input
+                    type="text"
+                    id="partner-name"
+                    data-partner-form-target="nameInput"
+                    data-action="input->partner-form#onChange"
+                    placeholder="{{ 'admin.cabinet.partners.form.name_placeholder'|trans }}"
+                    maxlength="180"
+                    required
+                    autocomplete="organization"
+                >
+
+                <label for="partner-url">{{ 'admin.cabinet.partners.form.url'|trans }}</label>
+                <input
+                    type="url"
+                    id="partner-url"
+                    data-partner-form-target="urlInput"
+                    data-action="input->partner-form#onChange"
+                    placeholder="https://example.com"
+                    maxlength="255"
+                    required
+                >
+
+                <label for="partner-email">{{ 'admin.cabinet.partners.form.email'|trans }}</label>
+                <input
+                    type="email"
+                    id="partner-email"
+                    data-partner-form-target="emailInput"
+                    data-action="input->partner-form#onChange"
+                    placeholder="partner@example.com"
+                    maxlength="180"
+                >
+
+                <label for="partner-phone">{{ 'admin.cabinet.partners.form.phone'|trans }}</label>
+                <input
+                    type="tel"
+                    id="partner-phone"
+                    data-partner-form-target="phoneInput"
+                    data-action="input->partner-form#onChange"
+                    placeholder="+380..."
+                    maxlength="32"
+                >
+
+                <p class="field-status" data-partner-form-target="status"></p>
+
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">{{ 'admin.cabinet.partners.form.save'|trans }}</button>
+                    <button type="button" class="btn btn-secondary" data-action="partner-form#requestClose">
+                        {{ 'admin.cabinet.partners.form.close'|trans }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-backdrop is-hidden" data-partner-form-target="confirmModal" data-action="click->partner-form#stopPropagation">
+        <div class="modal-panel modal-panel-sm" role="dialog" aria-modal="true">
+            <p class="confirm-text">{{ 'admin.cabinet.partners.form.unsaved'|trans }}</p>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-primary" data-action="partner-form#confirmClose">
+                    {{ 'admin.cabinet.partners.form.confirm_close'|trans }}
+                </button>
+                <button type="button" class="btn btn-secondary" data-action="partner-form#cancelClose">
+                    {{ 'admin.cabinet.partners.form.cancel'|trans }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

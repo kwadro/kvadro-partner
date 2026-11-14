@@ -1,0 +1,14 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}{{ 'admin.cabinet.title'|trans }}{% endblock %}
+
+{% block admin_content %}
+<header class="content-header">
+    <h1>{{ 'admin.cabinet.heading'|trans }}</h1>
+    <p>{{ 'admin.cabinet.lead'|trans }}</p>
+</header>
+
+<section class="content-section">
+    <p>{{ 'admin.cabinet.welcome'|trans({'%email%': app.user.userIdentifier}) }}</p>
+</section>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'register.title'|trans }}{% endblock %}
+{% block body_class %}page-auth{% endblock %}
+
+{% block body %}
+<div class="auth-shell">
+    <div class="auth-panel">
+        <p class="brand"><a href="{{ path('app_home') }}">{{ 'brand'|trans }}</a></p>
+        <h1>{{ 'register.heading'|trans }}</h1>
+        <p class="auth-lead">{{ 'register.lead'|trans }}</p>
+
+        {{ form_start(registrationForm, { attr: { class: 'auth-form' } }) }}
+            {{ form_row(registrationForm.fullName) }}
+            {{ form_row(registrationForm.email) }}
+            {{ form_row(registrationForm.phone) }}
+            {{ form_row(registrationForm.plainPassword.first) }}
+            {{ form_row(registrationForm.plainPassword.second) }}
+
+            <button type="submit" class="btn btn-primary">{{ 'register.submit'|trans }}</button>
+        {{ form_end(registrationForm) }}
+
+        <p class="auth-footer">{{ 'register.already'|trans }} <a href="{{ path('app_login') }}">{{ 'register.sign_in'|trans }}</a></p>
+        <p class="auth-footer"><a class="btn btn-secondary" href="{{ path('app_home') }}">{{ 'nav.back_home'|trans }}</a></p>
+    </div>
+</div>
+{% endblock %}

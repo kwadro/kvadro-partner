@@ -1,0 +1,39 @@
+{% extends 'cabinet/layout.html.twig' %}
+
+{% block title %}{{ 'cabinet.finance.title'|trans }}{% endblock %}
+
+{% block cabinet_content %}
+<header class="content-header">
+    <h1>{{ 'cabinet.finance.heading'|trans }}</h1>
+    <p>{{ 'cabinet.finance.lead'|trans }}</p>
+</header>
+
+<section class="content-section">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>{{ 'cabinet.finance.date'|trans }}</th>
+                <th>{{ 'cabinet.finance.type'|trans }}</th>
+                <th>{{ 'cabinet.finance.description'|trans }}</th>
+                <th>{{ 'cabinet.finance.amount'|trans }}</th>
+                <th>{{ 'cabinet.finance.balance_after'|trans }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for op in operations %}
+                <tr>
+                    <td>{{ op.date }}</td>
+                    <td>
+                        <span class="badge badge-{{ op.type }}">
+                            {{ op.type == 'accrual' ? 'cabinet.finance.accrual'|trans : 'cabinet.finance.withdrawal'|trans }}
+                        </span>
+                    </td>
+                    <td>{{ op.description_key|trans(op.description_params|default({})) }}</td>
+                    <td class="amount-{{ op.type }}">{{ op.amount }} {{ 'cabinet.account.currency'|trans }}</td>
+                    <td>{{ op.balance_after }} {{ 'cabinet.account.currency'|trans }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}
