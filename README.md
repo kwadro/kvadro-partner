@@ -168,9 +168,21 @@ Also increments `clicks` on the related `AdvertisingLink`.
 
 The script:
 
-1. Reads the key from `/{pageCode}/{linkKey}` (e.g. `/pb/my-key`) or query (`?pr=` / `?ref=`)
+1. Reads `/{pageCode}/{linkKey}` from the URL path (any 2-char partner code instead of fixed `pr`, e.g. `/pb/my-key`, `/wg/my-key`) or query (`?pr=` / `?ref=`)
 2. Sends a visit to `/api/views`
 3. Stores `bb_ref` / `bb_ref_id` cookies for 30 days (`SameSite=Lax`)
+
+Shop-side helpers:
+
+```js
+BringBuyer.parseReferralFromUrl(location.href)
+// -> { pageCode: "pb", linkKey: "my-key", referralKey: "pbmy-key" }
+
+BringBuyer.getReferralKey()
+BringBuyer.getReferralParts()
+```
+
+PHP: `App\Service\Referral\ReferralPathParser::parseUrl($url)`
 
 When placing an order on the partner site:
 

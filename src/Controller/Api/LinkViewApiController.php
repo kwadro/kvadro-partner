@@ -4,6 +4,7 @@ namespace App\Controller\Api;
 
 use App\Entity\LinkView;
 use App\Repository\AdvertisingLinkRepository;
+use App\Service\Referral\ReferralPathParser;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -15,16 +16,17 @@ class LinkViewApiController extends AbstractController
 {
     public function __construct(
         private AdvertisingLinkRepository $advertisingLinkRepository,
+        private ReferralPathParser $referralPathParser,
         private EntityManagerInterface $entityManager,
     ) {
     }
 
     /**
-     * Accepts a referral key {pageCode}{linkKey} (or full URL .../{pageCode}/{linkKey})
-     * and stores a view for the matching AdvertisingLink.
+     * Accepts a referral key {pageCode}{linkKey} or a full URL with /{pageCode}/{linkKey}
+     * (pageCode replaces the old fixed "pr" segment and can be any 2-char partner code).
      *
      * POST /api/views
-     * Body JSON: { "key": "pb24jc3yts" } or { "url": "https://shop.example/pb/24jc3yts" }
+     * Body JSON: { "key": "pb24jc3yts" } or { "url": "https://shop.example/category/x/pb/24jc3yts" }
      */
     #[Route('/views', name: 'api_link_views_create', methods: ['POST'])]
     public function create(Request $request): JsonResponse
@@ -34,15 +36,15 @@ class LinkViewApiController extends AbstractController
             $payload = [];
         }
 
-        $referralKey = $this->resolveReferralKey($payload);
-        if (null === $referralKey) {
+        $parsed = $this->resolveReferral($payload);
+        if (null === $parsed) {
             return $this->json([
                 'ok' => false,
                 'message' => 'Provide "key" or "url" with /{pageCode}/{linkKey}.',
             ], 400);
         }
 
-        $advertisingLink = $this->advertisingLinkRepository->findOneByReferralKey($referralKey);
+        $advertisingLink = $this->advertisingLinkRepository->findOneByReferralKey($parsed['referralKey']);
         if (!$advertisingLink) {
             return $this->json([
                 'ok' => false,
@@ -61,6 +63,9 @@ class LinkViewApiController extends AbstractController
             'view' => [
                 'id' => $view->getId(),
                 'advertisingLinkId' => $advertisingLink->getId(),
+                'pageCode' => $parsed['pageCode'],
+                'linkKey' => $parsed['linkKey'],
+                'referralKey' => $parsed['referralKey'],
                 'createdAt' => $view->getCreatedAt()->format(\DateTimeInterface::ATOM),
             ],
         ], 201);
@@ -68,26 +73,28 @@ class LinkViewApiController extends AbstractController
 
     /**
      * @param array $payload
+     *
+     * @return array{pageCode: string, linkKey: string, referralKey: string}|null
      */
-    private function resolveReferralKey(array $payload): ?string
+    private function resolveReferral(array $payload): ?array
     {
-        $key = trim((string) ($payload['key'] ?? $payload['linkKey'] ?? ''));
+        $key = trim((string) ($payload['key'] ?? $payload['linkKey'] ?? $payload['referralKey'] ?? ''));
         if ('' !== $key) {
-            return $key;
+            $fromKey = $this->referralPathParser->parseReferralKey($key);
+            if (null !== $fromKey) {
+                return $fromKey;
+            }
         }
 
         $url = trim((string) ($payload['url'] ?? ''));
-        if ('' === $url) {
-            return null;
+        if ('' !== $url) {
+            return $this->referralPathParser->parseUrl($url);
         }
 
-        $path = parse_url($url, PHP_URL_PATH);
-        if (!\is_string($path)) {
-            return null;
-        }
-
-        if (preg_match('#/([a-z0-9]{2})/([a-zA-Z0-9_-]{3,64})/?$#i', $path, $matches)) {
-            return strtolower($matches[1]).$matches[2];
+        $pageCode = strtolower(trim((string) ($payload['pageCode'] ?? $payload['code'] ?? '')));
+        $linkKey = trim((string) ($payload['linkKey'] ?? ''));
+        if ('' !== $pageCode && '' !== $linkKey) {
+            return $this->referralPathParser->parseReferralKey($pageCode.$linkKey);
         }
 
         return null;
