@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\AdvertisingLink;
 use App\Entity\User;
 use App\Repository\AdvertisingLinkRepository;
+use App\Repository\PartnerPageRepository;
 use App\Repository\PartnerRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -20,6 +21,7 @@ class CabinetController extends AbstractController
 {
     public function __construct(
         private PartnerRepository $partnerRepository,
+        private PartnerPageRepository $partnerPageRepository,
         private AdvertisingLinkRepository $advertisingLinkRepository,
         private EntityManagerInterface $entityManager,
     ) {
@@ -43,10 +45,31 @@ class CabinetController extends AbstractController
         /** @var User $user */
         $user = $this->getUser();
 
+        $partners = $this->partnerRepository->findBy([], ['name' => 'ASC']);
+        $partnersPayload = [];
+        foreach ($partners as $partner) {
+            $pages = [];
+            foreach ($partner->getPages() as $page) {
+                $pages[] = [
+                    'id' => $page->getId(),
+                    'code' => $page->getCode(),
+                    'url' => $page->getUrl(),
+                ];
+            }
+            if (0 === \count($pages)) {
+                continue;
+            }
+            $partnersPayload[] = [
+                'id' => $partner->getId(),
+                'name' => $partner->getName(),
+                'pages' => $pages,
+            ];
+        }
+
         return $this->render('cabinet/links.html.twig', [
             'active_menu' => 'links',
             'links' => $this->advertisingLinkRepository->findByUserOrdered($user),
-            'partners' => $this->partnerRepository->findBy([], ['name' => 'ASC']),
+            'partners' => $partnersPayload,
         ]);
     }
 
@@ -54,10 +77,10 @@ class CabinetController extends AbstractController
     public function checkKey(Request $request): JsonResponse
     {
         $payload = $this->decodeJson($request);
-        $partnerId = (int) ($payload['partnerId'] ?? 0);
+        $pageId = (int) ($payload['pageId'] ?? 0);
         $linkKey = trim((string) ($payload['linkKey'] ?? ''));
 
-        if ($partnerId < 1 || '' === $linkKey) {
+        if ($pageId < 1 || '' === $linkKey) {
             return $this->json([
                 'ok' => false,
                 'available' => false,
@@ -73,16 +96,16 @@ class CabinetController extends AbstractController
             ], 400);
         }
 
-        $partner = $this->partnerRepository->find($partnerId);
-        if (!$partner) {
+        $page = $this->partnerPageRepository->find($pageId);
+        if (!$page) {
             return $this->json([
                 'ok' => false,
                 'available' => false,
-                'message' => 'cabinet.links.popup.partner_required',
+                'message' => 'cabinet.links.popup.page_required',
             ], 404);
         }
 
-        $available = $this->advertisingLinkRepository->isKeyAvailable($partner, $linkKey);
+        $available = $this->advertisingLinkRepository->isKeyAvailable($page, $linkKey);
 
         return $this->json([
             'ok' => true,
@@ -90,7 +113,8 @@ class CabinetController extends AbstractController
             'message' => $available
                 ? 'cabinet.links.popup.key_available'
                 : 'cabinet.links.popup.key_taken',
-            'previewUrl' => $partner->buildReferralUrl($linkKey),
+            'previewUrl' => $page->buildReferralUrl($linkKey),
+            'referralKey' => $page->buildReferralKey($linkKey),
         ]);
     }
 
@@ -100,13 +124,21 @@ class CabinetController extends AbstractController
         /** @var User $user */
         $user = $this->getUser();
         $payload = $this->decodeJson($request);
-        $partnerId = (int) ($payload['partnerId'] ?? 0);
+        $pageId = (int) ($payload['pageId'] ?? 0);
         $linkKey = trim((string) ($payload['linkKey'] ?? ''));
+        $productName = trim((string) ($payload['productName'] ?? ''));
 
-        if ($partnerId < 1) {
+        if ($pageId < 1) {
             return $this->json([
                 'ok' => false,
-                'message' => 'cabinet.links.popup.partner_required',
+                'message' => 'cabinet.links.popup.page_required',
+            ], 400);
+        }
+
+        if ('' === $productName || mb_strlen($productName) > 180) {
+            return $this->json([
+                'ok' => false,
+                'message' => 'cabinet.links.popup.product_name_required',
             ], 400);
         }
 
@@ -117,24 +149,26 @@ class CabinetController extends AbstractController
             ], 400);
         }
 
-        $partner = $this->partnerRepository->find($partnerId);
-        if (!$partner) {
+        $page = $this->partnerPageRepository->find($pageId);
+        if (!$page || !$page->getPartner()) {
             return $this->json([
                 'ok' => false,
-                'message' => 'cabinet.links.popup.partner_required',
+                'message' => 'cabinet.links.popup.page_required',
             ], 404);
         }
 
-        if (!$this->advertisingLinkRepository->isKeyAvailable($partner, $linkKey)) {
+        if (!$this->advertisingLinkRepository->isKeyAvailable($page, $linkKey)) {
             return $this->json([
                 'ok' => false,
                 'message' => 'cabinet.links.popup.key_taken',
             ], 409);
         }
 
+        $partner = $page->getPartner();
         $link = (new AdvertisingLink())
             ->setUser($user)
-            ->setPartner($partner)
+            ->setPartnerPage($page)
+            ->setProductName($productName)
             ->setLinkKey($linkKey);
 
         $this->entityManager->persist($link);
@@ -147,6 +181,9 @@ class CabinetController extends AbstractController
                 'id' => $link->getId(),
                 'url' => $link->getUrl(),
                 'linkKey' => $link->getLinkKey(),
+                'productName' => $link->getProductName(),
+                'referralKey' => $link->getReferralKey(),
+                'pageCode' => $page->getCode(),
                 'partnerName' => $partner->getName(),
                 'clicks' => $link->getClicks(),
                 'orders' => $link->getOrders(),
@@ -200,7 +237,8 @@ class CabinetController extends AbstractController
             'active_menu' => 'links',
             'link' => [
                 'id' => $link->getId(),
-                'name' => $link->getLinkKey(),
+                'name' => $link->getProductName() ?: $link->getReferralKey(),
+                'product_name' => $link->getProductName(),
                 'url' => $link->getUrl(),
                 'clicks' => $link->getClicks(),
                 'unique_visitors' => 0,

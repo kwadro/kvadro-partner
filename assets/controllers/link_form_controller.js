@@ -6,6 +6,8 @@ export default class extends Controller {
         'confirmModal',
         'form',
         'partnerSelect',
+        'pageSelect',
+        'productNameInput',
         'keyInput',
         'preview',
         'status',
@@ -15,6 +17,7 @@ export default class extends Controller {
     ];
 
     static values = {
+        partners: Array,
         checkUrl: String,
         createUrl: String,
         detailUrlTemplate: String,
@@ -26,6 +29,8 @@ export default class extends Controller {
         msgKeyRequired: String,
         msgKeyInvalid: String,
         msgPartnerRequired: String,
+        msgPageRequired: String,
+        msgProductNameRequired: String,
         msgUnsaved: String,
         msgSaved: String,
         msgError: String,
@@ -35,6 +40,7 @@ export default class extends Controller {
         msgDeleteSuccess: String,
         msgDeleteForbidden: String,
         msgDeleteNotFound: String,
+        msgPagePlaceholder: String,
     };
 
     connect() {
@@ -83,6 +89,11 @@ export default class extends Controller {
         event.stopPropagation();
     }
 
+    onPartnerChange() {
+        this.populatePages();
+        this.onChange();
+    }
+
     onChange() {
         this.updatePreview();
         this.clearStatus();
@@ -90,11 +101,16 @@ export default class extends Controller {
 
     async checkKey(event) {
         event.preventDefault();
-        const partnerId = this.partnerSelectTarget.value;
+        const pageId = this.pageSelectTarget.value;
         const linkKey = this.keyInputTarget.value.trim();
 
-        if (!partnerId) {
+        if (!this.partnerSelectTarget.value) {
             this.setStatus(this.msgPartnerRequiredValue, 'error');
+            return;
+        }
+
+        if (!pageId) {
+            this.setStatus(this.msgPageRequiredValue, 'error');
             return;
         }
 
@@ -110,7 +126,7 @@ export default class extends Controller {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
-                body: JSON.stringify({ partnerId, linkKey }),
+                body: JSON.stringify({ pageId, linkKey }),
             });
             const data = await response.json();
             this.updatePreview();
@@ -142,11 +158,22 @@ export default class extends Controller {
 
     async save(event) {
         event.preventDefault();
-        const partnerId = this.partnerSelectTarget.value;
+        const pageId = this.pageSelectTarget.value;
+        const productName = this.productNameInputTarget.value.trim();
         const linkKey = this.keyInputTarget.value.trim();
 
-        if (!partnerId) {
+        if (!this.partnerSelectTarget.value) {
             this.setStatus(this.msgPartnerRequiredValue, 'error');
+            return;
+        }
+
+        if (!pageId) {
+            this.setStatus(this.msgPageRequiredValue, 'error');
+            return;
+        }
+
+        if (!productName) {
+            this.setStatus(this.msgProductNameRequiredValue, 'error');
             return;
         }
 
@@ -162,7 +189,7 @@ export default class extends Controller {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
-                body: JSON.stringify({ partnerId, linkKey }),
+                body: JSON.stringify({ pageId, productName, linkKey }),
             });
             const data = await response.json();
 
@@ -235,6 +262,8 @@ export default class extends Controller {
         row.dataset.linkId = String(link.id);
         row.innerHTML = `
             <td>${this.escapeHtml(link.partnerName)}</td>
+            <td>${this.escapeHtml(link.productName || '—')}</td>
+            <td>${this.escapeHtml(link.pageCode || '—')}</td>
             <td>${this.escapeHtml(link.linkKey)}</td>
             <td class="url-cell">${this.escapeHtml(link.url)}</td>
             <td>${this.escapeHtml(String(link.clicks))}</td>
@@ -265,25 +294,54 @@ export default class extends Controller {
 
         const emptyRow = document.createElement('tr');
         emptyRow.setAttribute('data-link-form-target', 'emptyRow');
-        emptyRow.innerHTML = `<td colspan="7">${this.escapeHtml(this.emptyTextValue)}</td>`;
+        emptyRow.innerHTML = `<td colspan="9">${this.escapeHtml(this.emptyTextValue)}</td>`;
         this.tableBodyTarget.append(emptyRow);
     }
 
+    populatePages() {
+        const partnerId = Number(this.partnerSelectTarget.value);
+        const partner = (this.partnersValue || []).find((item) => Number(item.id) === partnerId);
+        const pages = partner ? partner.pages || [] : [];
+
+        this.pageSelectTarget.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = this.msgPagePlaceholderValue;
+        this.pageSelectTarget.append(placeholder);
+
+        pages.forEach((page) => {
+            const option = document.createElement('option');
+            option.value = String(page.id);
+            option.dataset.code = page.code || '';
+            option.dataset.url = page.url || '';
+            option.textContent = `[${page.code}] ${page.url}`;
+            this.pageSelectTarget.append(option);
+        });
+
+        this.pageSelectTarget.disabled = pages.length === 0;
+        if (pages.length === 1) {
+            this.pageSelectTarget.value = String(pages[0].id);
+        }
+    }
+
     updatePreview() {
-        const option = this.partnerSelectTarget.selectedOptions[0];
+        const option = this.pageSelectTarget.selectedOptions[0];
         const baseUrl = option ? option.dataset.url : '';
+        const code = option ? option.dataset.code : '';
         const key = this.keyInputTarget.value.trim();
 
-        if (!baseUrl || !key) {
+        if (!baseUrl || !code || !key) {
             this.previewTarget.textContent = '—';
             return;
         }
 
-        this.previewTarget.textContent = `${baseUrl.replace(/\/$/, '')}/pr/${key}`;
+        this.previewTarget.textContent = `${baseUrl.replace(/\/$/, '')}/${code}/${key}`;
     }
 
     resetForm() {
         this.formTarget.reset();
+        this.pageSelectTarget.innerHTML = `<option value="">${this.escapeHtml(this.msgPagePlaceholderValue)}</option>`;
+        this.pageSelectTarget.disabled = true;
         this.previewTarget.textContent = '—';
         this.clearStatus();
         this.initialSnapshot = this.snapshot();
@@ -291,7 +349,12 @@ export default class extends Controller {
     }
 
     snapshot() {
-        return `${this.partnerSelectTarget.value}|${this.keyInputTarget.value.trim()}`;
+        return [
+            this.partnerSelectTarget.value,
+            this.pageSelectTarget.value,
+            this.productNameInputTarget.value.trim(),
+            this.keyInputTarget.value.trim(),
+        ].join('|');
     }
 
     isDirty() {
@@ -328,6 +391,8 @@ export default class extends Controller {
             'cabinet.links.popup.key_required': this.msgKeyRequiredValue,
             'cabinet.links.popup.key_invalid': this.msgKeyInvalidValue,
             'cabinet.links.popup.partner_required': this.msgPartnerRequiredValue,
+            'cabinet.links.popup.page_required': this.msgPageRequiredValue,
+            'cabinet.links.popup.product_name_required': this.msgProductNameRequiredValue,
             'cabinet.links.popup.saved': this.msgSavedValue,
             'cabinet.links.popup.error': this.msgErrorValue,
             'cabinet.links.delete.success': this.msgDeleteSuccessValue,

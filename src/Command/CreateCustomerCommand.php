@@ -4,6 +4,7 @@ namespace App\Command;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Service\PartnerOnboardingService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -29,6 +30,7 @@ class CreateCustomerCommand extends Command
         private EntityManagerInterface $entityManager,
         private UserRepository $userRepository,
         private UserPasswordHasherInterface $passwordHasher,
+        private PartnerOnboardingService $partnerOnboardingService,
     ) {
         parent::__construct();
     }
@@ -91,6 +93,12 @@ class CreateCustomerCommand extends Command
         $user->setBalance(number_format((float) $balance, 2, '.', ''));
         $user->setRoles([]);
         $user->setPassword($this->passwordHasher->hashPassword($user, $password));
+
+        if ($isNew) {
+            $this->partnerOnboardingService->onboard($user);
+        } else {
+            $this->partnerOnboardingService->ensureOwnedTeam($user);
+        }
 
         $this->entityManager->flush();
 

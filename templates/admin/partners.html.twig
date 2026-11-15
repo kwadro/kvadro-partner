@@ -10,8 +10,15 @@
     data-partner-form-delete-url-template-value="{{ path('app_admin_partners') }}/__ID__/delete"
     data-partner-form-empty-text-value="{{ 'admin.cabinet.partners.empty'|trans }}"
     data-partner-form-msg-name-required-value="{{ 'admin.cabinet.partners.form.name_required'|trans }}"
-    data-partner-form-msg-url-required-value="{{ 'admin.cabinet.partners.form.url_required'|trans }}"
+    data-partner-form-msg-pages-required-value="{{ 'admin.cabinet.partners.form.pages_required'|trans }}"
+    data-partner-form-msg-page-url-required-value="{{ 'admin.cabinet.partners.form.page_url_required'|trans }}"
+    data-partner-form-msg-page-code-invalid-value="{{ 'admin.cabinet.partners.form.page_code_invalid'|trans }}"
+    data-partner-form-msg-page-code-duplicate-value="{{ 'admin.cabinet.partners.form.page_code_duplicate'|trans }}"
+    data-partner-form-msg-page-code-taken-value="{{ 'admin.cabinet.partners.form.page_code_taken'|trans }}"
+    data-partner-form-msg-page-url-duplicate-value="{{ 'admin.cabinet.partners.form.page_url_duplicate'|trans }}"
+    data-partner-form-msg-page-delete-forbidden-value="{{ 'admin.cabinet.partners.form.page_delete_forbidden'|trans }}"
     data-partner-form-msg-email-invalid-value="{{ 'admin.cabinet.partners.form.email_invalid'|trans }}"
+    data-partner-form-msg-percent-invalid-value="{{ 'admin.cabinet.partners.form.percent_invalid'|trans }}"
     data-partner-form-msg-unsaved-value="{{ 'admin.cabinet.partners.form.unsaved'|trans }}"
     data-partner-form-msg-created-value="{{ 'admin.cabinet.partners.created'|trans }}"
     data-partner-form-msg-updated-value="{{ 'admin.cabinet.partners.updated'|trans }}"
@@ -24,6 +31,10 @@
     data-partner-form-msg-delete-value="{{ 'admin.cabinet.partners.delete'|trans }}"
     data-partner-form-msg-create-title-value="{{ 'admin.cabinet.partners.popup_title'|trans }}"
     data-partner-form-msg-edit-title-value="{{ 'admin.cabinet.partners.edit_title'|trans }}"
+    data-partner-form-msg-add-page-value="{{ 'admin.cabinet.partners.form.add_page'|trans }}"
+    data-partner-form-msg-remove-page-value="{{ 'admin.cabinet.partners.form.remove_page'|trans }}"
+    data-partner-form-msg-page-code-label-value="{{ 'admin.cabinet.partners.form.page_code'|trans }}"
+    data-partner-form-msg-page-url-label-value="{{ 'admin.cabinet.partners.form.page_url'|trans }}"
 >
     <header class="content-header">
         <h1>{{ 'admin.cabinet.partners.heading'|trans }}</h1>
@@ -44,7 +55,7 @@
                 <tr>
                     <th>{{ 'admin.cabinet.partners.id'|trans }}</th>
                     <th>{{ 'admin.cabinet.partners.name'|trans }}</th>
-                    <th>{{ 'admin.cabinet.partners.url'|trans }}</th>
+                    <th>{{ 'admin.cabinet.partners.pages'|trans }}</th>
                     <th>{{ 'admin.cabinet.partners.email'|trans }}</th>
                     <th>{{ 'admin.cabinet.partners.phone'|trans }}</th>
                     <th>{{ 'admin.cabinet.partners.created_at'|trans }}</th>
@@ -53,17 +64,32 @@
             </thead>
             <tbody data-partner-form-target="tableBody">
                 {% for partner in partners %}
+                    {% set pagesData = [] %}
+                    {% for page in partner.pages %}
+                        {% set pagesData = pagesData|merge([{ id: page.id, code: page.code, url: page.url }]) %}
+                    {% endfor %}
                     <tr
                         data-partner-id="{{ partner.id }}"
                         data-partner-name="{{ partner.name }}"
-                        data-partner-url="{{ partner.url }}"
                         data-partner-email="{{ partner.email|default('') }}"
                         data-partner-phone="{{ partner.phone|default('') }}"
+                        data-partner-own-percent="{{ partner.ownPercent }}"
+                        data-partner-level1-percent="{{ partner.level1Percent }}"
+                        data-partner-level2-percent="{{ partner.level2Percent }}"
                         data-partner-created="{{ partner.createdAt|date('Y-m-d') }}"
+                        data-partner-pages="{{ pagesData|json_encode|e('html_attr') }}"
                     >
                         <td>#{{ partner.id }}</td>
                         <td data-field="name">{{ partner.name }}</td>
-                        <td class="url-cell" data-field="url">{{ partner.url }}</td>
+                        <td class="url-cell" data-field="pages">
+                            {% if partner.pages is empty %}
+                                —
+                            {% else %}
+                                {% for page in partner.pages %}
+                                    <div>[{{ page.code }}] {{ page.url }}</div>
+                                {% endfor %}
+                            {% endif %}
+                        </td>
                         <td data-field="email">{{ partner.email ?: '—' }}</td>
                         <td data-field="phone">{{ partner.phone ?: '—' }}</td>
                         <td data-field="created">{{ partner.createdAt|date('Y-m-d') }}</td>
@@ -95,7 +121,7 @@
         <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="partner-form-title" data-action="click->partner-form#stopPropagation">
             <h2 id="partner-form-title" data-partner-form-target="modalTitle">{{ 'admin.cabinet.partners.popup_title'|trans }}</h2>
 
-            <form class="modal-form" data-partner-form-target="form" data-action="submit->partner-form#save">
+            <form class="modal-form partner-edit-form" data-partner-form-target="form" data-action="submit->partner-form#save">
                 <input type="hidden" data-partner-form-target="idInput" value="">
 
                 <label for="partner-name">{{ 'admin.cabinet.partners.form.name'|trans }}</label>
@@ -110,36 +136,94 @@
                     autocomplete="organization"
                 >
 
-                <label for="partner-url">{{ 'admin.cabinet.partners.form.url'|trans }}</label>
-                <input
-                    type="url"
-                    id="partner-url"
-                    data-partner-form-target="urlInput"
-                    data-action="input->partner-form#onChange"
-                    placeholder="https://example.com"
-                    maxlength="255"
-                    required
-                >
+                <div class="partner-contact-grid">
+                    <div class="reward-field">
+                        <label for="partner-email">{{ 'admin.cabinet.partners.form.email'|trans }}</label>
+                        <input
+                            type="email"
+                            id="partner-email"
+                            data-partner-form-target="emailInput"
+                            data-action="input->partner-form#onChange"
+                            placeholder="partner@example.com"
+                            maxlength="180"
+                        >
+                    </div>
+                    <div class="reward-field">
+                        <label for="partner-phone">{{ 'admin.cabinet.partners.form.phone'|trans }}</label>
+                        <input
+                            type="tel"
+                            id="partner-phone"
+                            data-partner-form-target="phoneInput"
+                            data-action="input->partner-form#onChange"
+                            placeholder="+380..."
+                            maxlength="32"
+                        >
+                    </div>
+                </div>
 
-                <label for="partner-email">{{ 'admin.cabinet.partners.form.email'|trans }}</label>
-                <input
-                    type="email"
-                    id="partner-email"
-                    data-partner-form-target="emailInput"
-                    data-action="input->partner-form#onChange"
-                    placeholder="partner@example.com"
-                    maxlength="180"
-                >
+                <div class="reward-block">
+                    <p class="reward-block-title">{{ 'admin.cabinet.partners.form.rewards_heading'|trans }}</p>
+                    <div class="reward-grid">
+                        <div class="reward-field">
+                            <label for="partner-own-percent" title="{{ 'admin.cabinet.partners.form.own_percent_help'|trans }}">
+                                {{ 'admin.cabinet.partners.form.own_percent'|trans }}
+                            </label>
+                            <input
+                                type="number"
+                                id="partner-own-percent"
+                                data-partner-form-target="ownPercentInput"
+                                data-action="input->partner-form#onChange"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                value="10"
+                                required
+                            >
+                        </div>
+                        <div class="reward-field">
+                            <label for="partner-level1-percent" title="{{ 'admin.cabinet.partners.form.level1_percent_help'|trans }}">
+                                {{ 'admin.cabinet.partners.form.level1_percent'|trans }}
+                            </label>
+                            <input
+                                type="number"
+                                id="partner-level1-percent"
+                                data-partner-form-target="level1PercentInput"
+                                data-action="input->partner-form#onChange"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                value="5"
+                                required
+                            >
+                        </div>
+                        <div class="reward-field">
+                            <label for="partner-level2-percent" title="{{ 'admin.cabinet.partners.form.level2_percent_help'|trans }}">
+                                {{ 'admin.cabinet.partners.form.level2_percent'|trans }}
+                            </label>
+                            <input
+                                type="number"
+                                id="partner-level2-percent"
+                                data-partner-form-target="level2PercentInput"
+                                data-action="input->partner-form#onChange"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                value="2"
+                                required
+                            >
+                        </div>
+                    </div>
+                </div>
 
-                <label for="partner-phone">{{ 'admin.cabinet.partners.form.phone'|trans }}</label>
-                <input
-                    type="tel"
-                    id="partner-phone"
-                    data-partner-form-target="phoneInput"
-                    data-action="input->partner-form#onChange"
-                    placeholder="+380..."
-                    maxlength="32"
-                >
+                <div class="pages-block">
+                    <div class="pages-block-header">
+                        <span>{{ 'admin.cabinet.partners.form.pages'|trans }}</span>
+                        <button type="button" class="btn btn-secondary btn-compact" data-action="partner-form#addPage">
+                            {{ 'admin.cabinet.partners.form.add_page'|trans }}
+                        </button>
+                    </div>
+                    <div class="pages-list" data-partner-form-target="pagesList"></div>
+                </div>
 
                 <p class="field-status" data-partner-form-target="status"></p>
 

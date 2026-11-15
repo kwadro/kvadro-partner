@@ -8,9 +8,12 @@ export default class extends Controller {
         'form',
         'idInput',
         'nameInput',
-        'urlInput',
         'emailInput',
         'phoneInput',
+        'ownPercentInput',
+        'level1PercentInput',
+        'level2PercentInput',
+        'pagesList',
         'status',
         'listStatus',
         'tableBody',
@@ -23,8 +26,15 @@ export default class extends Controller {
         deleteUrlTemplate: String,
         emptyText: String,
         msgNameRequired: String,
-        msgUrlRequired: String,
+        msgPagesRequired: String,
+        msgPageUrlRequired: String,
+        msgPageCodeInvalid: String,
+        msgPageCodeDuplicate: String,
+        msgPageCodeTaken: String,
+        msgPageUrlDuplicate: String,
+        msgPageDeleteForbidden: String,
         msgEmailInvalid: String,
+        msgPercentInvalid: String,
         msgUnsaved: String,
         msgCreated: String,
         msgUpdated: String,
@@ -37,6 +47,10 @@ export default class extends Controller {
         msgDelete: String,
         msgCreateTitle: String,
         msgEditTitle: String,
+        msgAddPage: String,
+        msgRemovePage: String,
+        msgPageCodeLabel: String,
+        msgPageUrlLabel: String,
     };
 
     connect() {
@@ -67,9 +81,12 @@ export default class extends Controller {
 
         this.idInputTarget.value = partnerId;
         this.nameInputTarget.value = row.dataset.partnerName || '';
-        this.urlInputTarget.value = row.dataset.partnerUrl || '';
         this.emailInputTarget.value = row.dataset.partnerEmail || '';
         this.phoneInputTarget.value = row.dataset.partnerPhone || '';
+        this.ownPercentInputTarget.value = row.dataset.partnerOwnPercent || '10.00';
+        this.level1PercentInputTarget.value = row.dataset.partnerLevel1Percent || '5.00';
+        this.level2PercentInputTarget.value = row.dataset.partnerLevel2Percent || '2.00';
+        this.renderPages(this.parsePages(row.dataset.partnerPages));
         this.initialSnapshot = this.snapshot();
 
         this.modalTarget.classList.remove('is-hidden');
@@ -115,21 +132,69 @@ export default class extends Controller {
         this.clearStatus();
     }
 
+    addPage() {
+        this.appendPageRow({ id: '', code: '', url: '' });
+        this.clearStatus();
+    }
+
+    removePage(event) {
+        const row = event.currentTarget.closest('[data-page-row]');
+        if (!row) {
+            return;
+        }
+        row.remove();
+        if (this.pagesListTarget.querySelectorAll('[data-page-row]').length === 0) {
+            this.appendPageRow({ id: '', code: '', url: '' });
+        }
+        this.clearStatus();
+    }
+
     async save(event) {
         event.preventDefault();
 
         const name = this.nameInputTarget.value.trim();
-        const url = this.urlInputTarget.value.trim();
         const email = this.emailInputTarget.value.trim();
         const phone = this.phoneInputTarget.value.trim();
+        const ownPercent = this.ownPercentInputTarget.value.trim();
+        const level1Percent = this.level1PercentInputTarget.value.trim();
+        const level2Percent = this.level2PercentInputTarget.value.trim();
+        const pages = this.collectPages();
 
         if (!name) {
             this.setStatus(this.msgNameRequiredValue, 'error');
             return;
         }
 
-        if (!url) {
-            this.setStatus(this.msgUrlRequiredValue, 'error');
+        if (![ownPercent, level1Percent, level2Percent].every((value) => this.isValidPercent(value))) {
+            this.setStatus(this.msgPercentInvalidValue, 'error');
+            return;
+        }
+
+        if (pages.length === 0) {
+            this.setStatus(this.msgPagesRequiredValue, 'error');
+            return;
+        }
+
+        for (const page of pages) {
+            if (!page.url) {
+                this.setStatus(this.msgPageUrlRequiredValue, 'error');
+                return;
+            }
+            if (!/^[a-z0-9]{2}$/i.test(page.code)) {
+                this.setStatus(this.msgPageCodeInvalidValue, 'error');
+                return;
+            }
+        }
+
+        const codes = pages.map((page) => page.code.toLowerCase());
+        if (new Set(codes).size !== codes.length) {
+            this.setStatus(this.msgPageCodeDuplicateValue, 'error');
+            return;
+        }
+
+        const urls = pages.map((page) => page.url.replace(/\/$/, ''));
+        if (new Set(urls).size !== urls.length) {
+            this.setStatus(this.msgPageUrlDuplicateValue, 'error');
             return;
         }
 
@@ -145,7 +210,15 @@ export default class extends Controller {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
-                body: JSON.stringify({ name, url, email, phone }),
+                body: JSON.stringify({
+                    name,
+                    email,
+                    phone,
+                    ownPercent,
+                    level1Percent,
+                    level2Percent,
+                    pages,
+                }),
             });
             const data = await response.json();
 
@@ -228,13 +301,16 @@ export default class extends Controller {
         }
 
         row.dataset.partnerName = partner.name || '';
-        row.dataset.partnerUrl = partner.url || '';
         row.dataset.partnerEmail = partner.email || '';
         row.dataset.partnerPhone = partner.phone || '';
+        row.dataset.partnerOwnPercent = partner.ownPercent || '10.00';
+        row.dataset.partnerLevel1Percent = partner.level1Percent || '5.00';
+        row.dataset.partnerLevel2Percent = partner.level2Percent || '2.00';
         row.dataset.partnerCreated = partner.createdAt || '';
+        row.dataset.partnerPages = JSON.stringify(partner.pages || []);
 
         row.querySelector('[data-field="name"]').textContent = partner.name;
-        row.querySelector('[data-field="url"]').textContent = partner.url;
+        row.querySelector('[data-field="pages"]').innerHTML = this.formatPagesHtml(partner.pages || []);
         row.querySelector('[data-field="email"]').textContent = partner.email || '—';
         row.querySelector('[data-field="phone"]').textContent = partner.phone || '—';
     }
@@ -243,14 +319,17 @@ export default class extends Controller {
         const row = document.createElement('tr');
         row.dataset.partnerId = String(partner.id);
         row.dataset.partnerName = partner.name || '';
-        row.dataset.partnerUrl = partner.url || '';
         row.dataset.partnerEmail = partner.email || '';
         row.dataset.partnerPhone = partner.phone || '';
+        row.dataset.partnerOwnPercent = partner.ownPercent || '10.00';
+        row.dataset.partnerLevel1Percent = partner.level1Percent || '5.00';
+        row.dataset.partnerLevel2Percent = partner.level2Percent || '2.00';
         row.dataset.partnerCreated = partner.createdAt || '';
+        row.dataset.partnerPages = JSON.stringify(partner.pages || []);
         row.innerHTML = `
             <td>#${this.escapeHtml(String(partner.id))}</td>
             <td data-field="name">${this.escapeHtml(partner.name)}</td>
-            <td class="url-cell" data-field="url">${this.escapeHtml(partner.url)}</td>
+            <td class="url-cell" data-field="pages">${this.formatPagesHtml(partner.pages || [])}</td>
             <td data-field="email">${this.escapeHtml(partner.email || '—')}</td>
             <td data-field="phone">${this.escapeHtml(partner.phone || '—')}</td>
             <td data-field="created">${this.escapeHtml(partner.createdAt)}</td>
@@ -273,6 +352,16 @@ export default class extends Controller {
         return row;
     }
 
+    formatPagesHtml(pages) {
+        if (!pages.length) {
+            return '—';
+        }
+
+        return pages
+            .map((page) => `<div>[${this.escapeHtml(page.code)}] ${this.escapeHtml(page.url)}</div>`)
+            .join('');
+    }
+
     ensureEmptyRow() {
         const rows = this.tableBodyTarget.querySelectorAll('tr[data-partner-id]');
         if (rows.length > 0 || this.hasEmptyRowTarget) {
@@ -288,17 +377,104 @@ export default class extends Controller {
     resetForm() {
         this.formTarget.reset();
         this.idInputTarget.value = '';
+        this.ownPercentInputTarget.value = '10';
+        this.level1PercentInputTarget.value = '5';
+        this.level2PercentInputTarget.value = '2';
+        this.renderPages([{ id: '', code: '', url: '' }]);
         this.clearStatus();
         this.initialSnapshot = this.snapshot();
+    }
+
+    isValidPercent(value) {
+        if (value === '' || Number.isNaN(Number(value))) {
+            return false;
+        }
+        const number = Number(value);
+        return number >= 0 && number <= 100;
+    }
+
+    renderPages(pages) {
+        this.pagesListTarget.innerHTML = '';
+        const list = pages.length ? pages : [{ id: '', code: '', url: '' }];
+        list.forEach((page) => this.appendPageRow(page));
+    }
+
+    appendPageRow(page) {
+        const row = document.createElement('div');
+        row.className = 'page-row';
+        row.dataset.pageRow = '1';
+        row.innerHTML = `
+            <input type="hidden" data-page-id value="${this.escapeHtml(String(page.id || ''))}">
+            <div class="page-row-fields">
+                <div class="page-code-field">
+                    <label>${this.escapeHtml(this.msgPageCodeLabelValue)}</label>
+                    <input
+                        type="text"
+                        data-page-code
+                        data-action="input->partner-form#onChange"
+                        value="${this.escapeHtml(page.code || '')}"
+                        maxlength="2"
+                        placeholder="ab"
+                        required
+                    >
+                </div>
+                <div class="page-url-field">
+                    <label>${this.escapeHtml(this.msgPageUrlLabelValue)}</label>
+                    <input
+                        type="url"
+                        data-page-url
+                        data-action="input->partner-form#onChange"
+                        value="${this.escapeHtml(page.url || '')}"
+                        maxlength="255"
+                        placeholder="https://example.com/page"
+                        required
+                    >
+                </div>
+                <button
+                    type="button"
+                    class="btn-link-danger page-remove"
+                    data-action="partner-form#removePage"
+                >${this.escapeHtml(this.msgRemovePageValue)}</button>
+            </div>
+        `;
+        this.pagesListTarget.append(row);
+    }
+
+    collectPages() {
+        return Array.from(this.pagesListTarget.querySelectorAll('[data-page-row]')).map((row) => {
+            const id = row.querySelector('[data-page-id]')?.value.trim() || '';
+            const code = row.querySelector('[data-page-code]')?.value.trim() || '';
+            const url = row.querySelector('[data-page-url]')?.value.trim() || '';
+            return {
+                id: id ? Number(id) : null,
+                code,
+                url,
+            };
+        }).filter((page) => page.code || page.url);
+    }
+
+    parsePages(raw) {
+        if (!raw) {
+            return [];
+        }
+        try {
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+            return [];
+        }
     }
 
     snapshot() {
         return [
             this.idInputTarget.value.trim(),
             this.nameInputTarget.value.trim(),
-            this.urlInputTarget.value.trim(),
             this.emailInputTarget.value.trim(),
             this.phoneInputTarget.value.trim(),
+            this.ownPercentInputTarget.value.trim(),
+            this.level1PercentInputTarget.value.trim(),
+            this.level2PercentInputTarget.value.trim(),
+            JSON.stringify(this.collectPages()),
         ].join('|');
     }
 
@@ -332,8 +508,15 @@ export default class extends Controller {
     messageFromKey(key) {
         const map = {
             'admin.cabinet.partners.form.name_required': this.msgNameRequiredValue,
-            'admin.cabinet.partners.form.url_required': this.msgUrlRequiredValue,
+            'admin.cabinet.partners.form.pages_required': this.msgPagesRequiredValue,
+            'admin.cabinet.partners.form.page_url_required': this.msgPageUrlRequiredValue,
+            'admin.cabinet.partners.form.page_code_invalid': this.msgPageCodeInvalidValue,
+            'admin.cabinet.partners.form.page_code_duplicate': this.msgPageCodeDuplicateValue,
+            'admin.cabinet.partners.form.page_code_taken': this.msgPageCodeTakenValue,
+            'admin.cabinet.partners.form.page_url_duplicate': this.msgPageUrlDuplicateValue,
+            'admin.cabinet.partners.form.page_delete_forbidden': this.msgPageDeleteForbiddenValue,
             'admin.cabinet.partners.form.email_invalid': this.msgEmailInvalidValue,
+            'admin.cabinet.partners.form.percent_invalid': this.msgPercentInvalidValue,
             'admin.cabinet.partners.created': this.msgCreatedValue,
             'admin.cabinet.partners.updated': this.msgUpdatedValue,
             'admin.cabinet.partners.deleted': this.msgDeletedValue,

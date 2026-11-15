@@ -40,6 +40,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
+    #[ORM\ManyToOne(inversedBy: 'members')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Team $team = null;
+
+    #[ORM\OneToOne(mappedBy: 'owner', cascade: ['persist'])]
+    private ?Team $ownedTeam = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?User $invitedBy = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?InviteLink $inviteLink = null;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
@@ -143,5 +158,56 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function getTeam(): ?Team
+    {
+        return $this->team;
+    }
+
+    public function setTeam(?Team $team): static
+    {
+        $this->team = $team;
+
+        return $this;
+    }
+
+    public function getOwnedTeam(): ?Team
+    {
+        return $this->ownedTeam;
+    }
+
+    public function setOwnedTeam(?Team $ownedTeam): static
+    {
+        $this->ownedTeam = $ownedTeam;
+        if (null !== $ownedTeam && $ownedTeam->getOwner() !== $this) {
+            $ownedTeam->setOwner($this);
+        }
+
+        return $this;
+    }
+
+    public function getInvitedBy(): ?User
+    {
+        return $this->invitedBy;
+    }
+
+    public function setInvitedBy(?User $invitedBy): static
+    {
+        $this->invitedBy = $invitedBy;
+
+        return $this;
+    }
+
+    public function getInviteLink(): ?InviteLink
+    {
+        return $this->inviteLink;
+    }
+
+    public function setInviteLink(?InviteLink $inviteLink): static
+    {
+        $this->inviteLink = $inviteLink;
+
+        return $this;
     }
 }

@@ -5,7 +5,7 @@
  * <script src="https://YOUR-TRACKER-HOST/js/partner-tracker.js" async></script>
  *
  * What it does:
- * 1) Reads referral key from /pr/{key} or ?pr= / ?ref=
+ * 1) Reads referral from /{pageCode}/{linkKey} (e.g. /pb/my-key) or ?pr= / ?ref=
  * 2) Registers the visit via POST /api/views
  * 3) Stores a first-party cookie for later order attribution
  *
@@ -18,7 +18,9 @@
     var COOKIE_NAME = 'bb_ref';
     var COOKIE_ID_NAME = 'bb_ref_id';
     var COOKIE_DAYS = 30;
-    var KEY_PATTERN = /^[a-zA-Z0-9_-]{3,64}$/;
+    // Full referral key = 2-char page code + client link key (3–64)
+    var KEY_PATTERN = /^[a-zA-Z0-9_-]{5,66}$/;
+    var PATH_PATTERN = /\/([a-z0-9]{2})\/([a-zA-Z0-9_-]{3,64})\/?$/i;
 
     function getScriptOrigin() {
         var script = document.currentScript;
@@ -43,9 +45,9 @@
 
     function extractKeyFromLocation() {
         var path = window.location.pathname || '';
-        var pathMatch = path.match(/\/pr\/([a-zA-Z0-9_-]{3,64})\/?$/);
-        if (pathMatch && pathMatch[1]) {
-            return pathMatch[1];
+        var pathMatch = path.match(PATH_PATTERN);
+        if (pathMatch && pathMatch[1] && pathMatch[2]) {
+            return String(pathMatch[1]).toLowerCase() + pathMatch[2];
         }
 
         var params = new URLSearchParams(window.location.search || '');

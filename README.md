@@ -14,7 +14,7 @@ Affiliate / referral program built with **Symfony 7.4**. Partners create referra
 - **Advertising links** — create / view / delete
   - partner select from admin-created partners
   - link key with availability check / random generation
-  - URL format: `{partner url}/pr/{key}`
+  - URL format: `{page url}/{pageCode}/{linkKey}` (e.g. `/pb/my-key`)
   - delete allowed only when there are no clicks, orders, or rewards
 - **Financial operations** — accruals and withdrawals history (sample data)
 
@@ -81,28 +81,51 @@ php bin/console app:seed-partner-sites
 | User registration | `/register` |
 | User login | `/login` |
 | Partner cabinet | `/cabinet` |
+| Program invite links | `/cabinet/invites` |
+| My team | `/cabinet/team` |
 | Admin login | `/admin_9fg!lp/login` |
 | Admin cabinet | `/admin_9fg!lp` |
 | Partners (admin) | `/admin_9fg!lp/partners` |
+| Reward settings (admin) | `/admin_9fg!lp/settings/rewards` |
 | Views API | `POST /api/views` |
 | JS tracker | `/js/partner-tracker.js` |
 
 ## Data model (core)
 
-- **User** — program participant
+- **User** — program participant (`invitedBy`, `team`, `ownedTeam`)
 - **AdminUser** — administrator (separate `admin_users` table)
-- **Partner** — partner store managed by admin: name, URL, email, phone
-- **AdvertisingLink** — account referral link (User + Partner + `linkKey`)
+- **Team** — each user owns a team; invitees become members of the inviter's team
+- **InviteLink** — partner-program advertising URL (`/register?ref={key}`)
+- **Partner reward percents** — each partner has own / level-1 / level-2 %
+
+## Reward calculation
+
+`App\Service\Reward\RewardCalculator::calculateFromSale(User $seller, $orderAmount, Partner $partner)`
+
+Percents come from the **partner** settings (defaults 10 / 5 / 2).
+
+Example order `1000`: seller `100` + inviter `50` + 2nd upline `20` = **170**.
+- **Partner** — partner store managed by admin: name, email, phone
+- **PartnerPage** — partner landing/ad page: URL + unique 2-char `code`
+- **AdvertisingLink** — product referral link (User + PartnerPage + `linkKey` + product name)
 - **LinkView** — link visit (AdvertisingLink + `createdAt`)
 - **PartnerSite** — legacy seeded catalog (not used for new links)
+
+## Partner-program invite URLs
+
+```text
+{app}/register?ref={inviteKey}
+```
+
+Whoever registers with that `ref` joins the inviter's **Team**.
 
 ## Referral link format
 
 ```text
-{Partner.url}/pr/{linkKey}
+{PartnerPage.url}/{pageCode}/{linkKey}
 ```
 
-Example: `https://shop.example.com/pr/ab24jc3yts`
+Example: page code `pb`, client key `24jc3yts` → `https://shop.example.com/pb/24jc3yts`
 
 ## Views API
 
@@ -111,13 +134,15 @@ Example: `https://shop.example.com/pr/ab24jc3yts`
 Public endpoint (CORS enabled for partner-site browser calls).
 
 ```json
-{ "key": "ab24jc3yts" }
+{ "key": "pb24jc3yts" }
 ```
+
+(`key` = 2-char page code + client `linkKey`)
 
 or
 
 ```json
-{ "url": "https://shop.example.com/pr/ab24jc3yts" }
+{ "url": "https://shop.example.com/pb/24jc3yts" }
 ```
 
 Success (`201`):
@@ -143,7 +168,7 @@ Also increments `clicks` on the related `AdvertisingLink`.
 
 The script:
 
-1. Reads the key from `/pr/{key}` or query (`?pr=` / `?ref=`)
+1. Reads the key from `/{pageCode}/{linkKey}` (e.g. `/pb/my-key`) or query (`?pr=` / `?ref=`)
 2. Sends a visit to `/api/views`
 3. Stores `bb_ref` / `bb_ref_id` cookies for 30 days (`SameSite=Lax`)
 

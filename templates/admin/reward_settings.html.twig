@@ -1,0 +1,48 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}{{ 'admin.cabinet.settings.title'|trans }}{% endblock %}
+
+{% block admin_content %}
+<header class="content-header">
+    <h1>{{ 'admin.cabinet.settings.heading'|trans }}</h1>
+    <p>{{ 'admin.cabinet.settings.lead'|trans }}</p>
+</header>
+
+<section class="content-section">
+    <h2>{{ 'admin.cabinet.settings.example_heading'|trans }}</h2>
+    <p>{{ 'admin.cabinet.settings.example_lead'|trans({ '%amount%': example.orderAmount }) }}</p>
+    <p class="field-hint">{{ 'admin.cabinet.settings.example_note'|trans }}</p>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>{{ 'admin.cabinet.settings.example_role'|trans }}</th>
+                <th>{{ 'admin.cabinet.settings.example_percent'|trans }}</th>
+                <th>{{ 'admin.cabinet.settings.example_reward'|trans }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ 'admin.cabinet.settings.example_seller'|trans }}</td>
+                <td>{{ example.ownPercent }}%</td>
+                <td>{{ example.own }} {{ 'cabinet.account.currency'|trans }}</td>
+            </tr>
+            <tr>
+                <td>{{ 'admin.cabinet.settings.example_level1'|trans }}</td>
+                <td>{{ example.level1Percent }}%</td>
+                <td>{{ example.level1 }} {{ 'cabinet.account.currency'|trans }}</td>
+            </tr>
+            <tr>
+                <td>{{ 'admin.cabinet.settings.example_level2'|trans }}</td>
+                <td>{{ example.level2Percent }}%</td>
+                <td>{{ example.level2 }} {{ 'cabinet.account.currency'|trans }}</td>
+            </tr>
+            <tr>
+                <td><strong>{{ 'admin.cabinet.settings.example_total'|trans }}</strong></td>
+                <td></td>
+                <td><strong>{{ example.total }} {{ 'cabinet.account.currency'|trans }}</strong></td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+{% endblock %}

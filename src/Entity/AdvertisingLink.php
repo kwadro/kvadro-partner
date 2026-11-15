@@ -7,7 +7,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: AdvertisingLinkRepository::class)]
 #[ORM\Table(name: 'advertising_links')]
-#[ORM\UniqueConstraint(name: 'uniq_partner_link_key', columns: ['partner_id', 'link_key'])]
+#[ORM\UniqueConstraint(name: 'uniq_partner_page_link_key', columns: ['partner_page_id', 'link_key'])]
 class AdvertisingLink
 {
     #[ORM\Id]
@@ -23,8 +23,15 @@ class AdvertisingLink
     #[ORM\JoinColumn(nullable: false)]
     private ?Partner $partner = null;
 
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?PartnerPage $partnerPage = null;
+
     #[ORM\Column(length: 64)]
     private string $linkKey = '';
+
+    #[ORM\Column(length: 180)]
+    private string $productName = '';
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
@@ -72,6 +79,21 @@ class AdvertisingLink
         return $this;
     }
 
+    public function getPartnerPage(): ?PartnerPage
+    {
+        return $this->partnerPage;
+    }
+
+    public function setPartnerPage(?PartnerPage $partnerPage): static
+    {
+        $this->partnerPage = $partnerPage;
+        if (null !== $partnerPage) {
+            $this->partner = $partnerPage->getPartner();
+        }
+
+        return $this;
+    }
+
     public function getLinkKey(): string
     {
         return $this->linkKey;
@@ -80,6 +102,18 @@ class AdvertisingLink
     public function setLinkKey(string $linkKey): static
     {
         $this->linkKey = $linkKey;
+
+        return $this;
+    }
+
+    public function getProductName(): string
+    {
+        return $this->productName;
+    }
+
+    public function setProductName(string $productName): static
+    {
+        $this->productName = $productName;
 
         return $this;
     }
@@ -125,13 +159,22 @@ class AdvertisingLink
         return $this;
     }
 
+    public function getReferralKey(): string
+    {
+        if (!$this->partnerPage) {
+            return $this->linkKey;
+        }
+
+        return $this->partnerPage->buildReferralKey($this->linkKey);
+    }
+
     public function getUrl(): string
     {
-        if (!$this->partner) {
+        if (!$this->partnerPage) {
             return '';
         }
 
-        return $this->partner->buildReferralUrl($this->linkKey);
+        return $this->partnerPage->buildReferralUrl($this->linkKey);
     }
 
     public function canBeDeleted(): bool

@@ -5,6 +5,7 @@
 {% block cabinet_content %}
 <div
     data-controller="link-form"
+    data-link-form-partners-value="{{ partners|json_encode|e('html_attr') }}"
     data-link-form-check-url-value="{{ path('app_cabinet_link_check_key') }}"
     data-link-form-create-url-value="{{ path('app_cabinet_link_create') }}"
     data-link-form-detail-url-template-value="{{ path('app_cabinet_links') }}/__ID__"
@@ -16,6 +17,8 @@
     data-link-form-msg-key-required-value="{{ 'cabinet.links.popup.key_required'|trans }}"
     data-link-form-msg-key-invalid-value="{{ 'cabinet.links.popup.key_invalid'|trans }}"
     data-link-form-msg-partner-required-value="{{ 'cabinet.links.popup.partner_required'|trans }}"
+    data-link-form-msg-page-required-value="{{ 'cabinet.links.popup.page_required'|trans }}"
+    data-link-form-msg-product-name-required-value="{{ 'cabinet.links.popup.product_name_required'|trans }}"
     data-link-form-msg-unsaved-value="{{ 'cabinet.links.popup.unsaved'|trans }}"
     data-link-form-msg-saved-value="{{ 'cabinet.links.popup.saved'|trans }}"
     data-link-form-msg-error-value="{{ 'cabinet.links.popup.error'|trans }}"
@@ -25,6 +28,7 @@
     data-link-form-msg-delete-success-value="{{ 'cabinet.links.delete.success'|trans }}"
     data-link-form-msg-delete-forbidden-value="{{ 'cabinet.links.delete.forbidden'|trans }}"
     data-link-form-msg-delete-not-found-value="{{ 'cabinet.links.delete.not_found'|trans }}"
+    data-link-form-msg-page-placeholder-value="{{ 'cabinet.links.popup.page_placeholder'|trans }}"
 >
     <header class="content-header">
         <h1>{{ 'cabinet.links.heading'|trans }}</h1>
@@ -44,6 +48,8 @@
             <thead>
                 <tr>
                     <th>{{ 'cabinet.links.partner'|trans }}</th>
+                    <th>{{ 'cabinet.links.product_name'|trans }}</th>
+                    <th>{{ 'cabinet.links.page_code'|trans }}</th>
                     <th>{{ 'cabinet.links.key'|trans }}</th>
                     <th>{{ 'cabinet.links.url'|trans }}</th>
                     <th>{{ 'cabinet.links.clicks'|trans }}</th>
@@ -56,6 +62,8 @@
                 {% for link in links %}
                     <tr data-link-id="{{ link.id }}">
                         <td>{{ link.partner.name }}</td>
+                        <td>{{ link.productName }}</td>
+                        <td>{{ link.partnerPage ? link.partnerPage.code : '—' }}</td>
                         <td>{{ link.linkKey }}</td>
                         <td class="url-cell">{{ link.url }}</td>
                         <td>{{ link.clicks }}</td>
@@ -73,7 +81,7 @@
                     </tr>
                 {% else %}
                     <tr data-link-form-target="emptyRow">
-                        <td colspan="7">{{ 'cabinet.links.empty'|trans }}</td>
+                        <td colspan="9">{{ 'cabinet.links.empty'|trans }}</td>
                     </tr>
                 {% endfor %}
             </tbody>
@@ -89,16 +97,36 @@
                 <select
                     id="partner-select"
                     data-link-form-target="partnerSelect"
-                    data-action="change->link-form#onChange"
+                    data-action="change->link-form#onPartnerChange"
                     required
                 >
                     <option value="">{{ 'cabinet.links.popup.partner_placeholder'|trans }}</option>
                     {% for partner in partners %}
-                        <option value="{{ partner.id }}" data-url="{{ partner.url }}">
-                            {{ partner.name }} — {{ partner.url }}
-                        </option>
+                        <option value="{{ partner.id }}">{{ partner.name }}</option>
                     {% endfor %}
                 </select>
+
+                <label for="page-select">{{ 'cabinet.links.popup.page'|trans }}</label>
+                <select
+                    id="page-select"
+                    data-link-form-target="pageSelect"
+                    data-action="change->link-form#onChange"
+                    required
+                    disabled
+                >
+                    <option value="">{{ 'cabinet.links.popup.page_placeholder'|trans }}</option>
+                </select>
+
+                <label for="product-name">{{ 'cabinet.links.popup.product_name'|trans }}</label>
+                <input
+                    type="text"
+                    id="product-name"
+                    data-link-form-target="productNameInput"
+                    data-action="input->link-form#onChange"
+                    placeholder="{{ 'cabinet.links.popup.product_name_placeholder'|trans }}"
+                    maxlength="180"
+                    required
+                >
 
                 <label for="link-key">{{ 'cabinet.links.popup.key'|trans }}</label>
                 <div class="key-row">

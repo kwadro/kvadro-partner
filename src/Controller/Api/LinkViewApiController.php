@@ -20,11 +20,11 @@ class LinkViewApiController extends AbstractController
     }
 
     /**
-     * Accepts a referral link key (or full partner URL ending with /pr/{key})
+     * Accepts a referral key {pageCode}{linkKey} (or full URL .../{pageCode}/{linkKey})
      * and stores a view for the matching AdvertisingLink.
      *
      * POST /api/views
-     * Body JSON: { "key": "link-key" } or { "url": "https://partner.example/pr/link-key" }
+     * Body JSON: { "key": "pb24jc3yts" } or { "url": "https://shop.example/pb/24jc3yts" }
      */
     #[Route('/views', name: 'api_link_views_create', methods: ['POST'])]
     public function create(Request $request): JsonResponse
@@ -34,30 +34,21 @@ class LinkViewApiController extends AbstractController
             $payload = [];
         }
 
-        $linkKey = $this->resolveLinkKey($payload);
-        if (null === $linkKey) {
+        $referralKey = $this->resolveReferralKey($payload);
+        if (null === $referralKey) {
             return $this->json([
                 'ok' => false,
-                'message' => 'Provide "key" or "url" with /pr/{key}.',
+                'message' => 'Provide "key" or "url" with /{pageCode}/{linkKey}.',
             ], 400);
         }
 
-        $links = $this->advertisingLinkRepository->findByLinkKey($linkKey);
-        if (0 === \count($links)) {
+        $advertisingLink = $this->advertisingLinkRepository->findOneByReferralKey($referralKey);
+        if (!$advertisingLink) {
             return $this->json([
                 'ok' => false,
                 'message' => 'Advertising link not found.',
             ], 404);
         }
-
-        if (\count($links) > 1) {
-            return $this->json([
-                'ok' => false,
-                'message' => 'Multiple links found for this key. Send full "url".',
-            ], 409);
-        }
-
-        $advertisingLink = $links[0];
 
         $view = (new LinkView())->setAdvertisingLink($advertisingLink);
         $advertisingLink->setClicks($advertisingLink->getClicks() + 1);
@@ -78,7 +69,7 @@ class LinkViewApiController extends AbstractController
     /**
      * @param array $payload
      */
-    private function resolveLinkKey(array $payload): ?string
+    private function resolveReferralKey(array $payload): ?string
     {
         $key = trim((string) ($payload['key'] ?? $payload['linkKey'] ?? ''));
         if ('' !== $key) {
@@ -95,10 +86,10 @@ class LinkViewApiController extends AbstractController
             return null;
         }
 
-        if (!preg_match('#/pr/([a-zA-Z0-9_-]{3,64})/?$#', $path, $matches)) {
-            return null;
+        if (preg_match('#/([a-z0-9]{2})/([a-zA-Z0-9_-]{3,64})/?$#i', $path, $matches)) {
+            return strtolower($matches[1]).$matches[2];
         }
 
-        return $matches[1];
+        return null;
     }
 }

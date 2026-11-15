@@ -478,8 +478,10 @@ a.btn {
 }
 
 .modal-panel {
-    width: min(100%, 560px);
-    padding: 1.35rem 1.4rem 1.25rem;
+    width: min(100%, 640px);
+    max-height: min(96vh, 900px);
+    overflow: auto;
+    padding: 0.9rem 1rem 0.85rem;
     border: 1px solid var(--line);
     border-radius: 14px;
     background: linear-gradient(180deg, var(--panel), var(--bg-soft));
@@ -491,17 +493,49 @@ a.btn {
 }
 
 .modal-panel h2 {
-    margin: 0 0 1rem;
+    margin: 0 0 0.55rem;
+    font-size: 1.15rem;
 }
 
 .modal-form {
     display: grid;
-    gap: 0.55rem;
+    gap: 0.28rem;
 }
 
 .modal-form label {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     color: var(--muted);
+}
+
+.reward-block {
+    display: grid;
+    gap: 0.3rem;
+    margin-top: 0.15rem;
+    padding-top: 0.35rem;
+    border-top: 1px solid var(--line);
+}
+
+.reward-block-title {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.partner-contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+}
+
+.reward-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+}
+
+.reward-field {
+    display: grid;
+    gap: 0.2rem;
 }
 
 .modal-form select,
@@ -509,14 +543,17 @@ a.btn {
 .modal-form input[type="url"],
 .modal-form input[type="email"],
 .modal-form input[type="tel"],
+.modal-form input[type="number"],
 .modal-form input:not([type="checkbox"]):not([type="hidden"]):not([type="submit"]) {
     width: 100%;
-    padding: 0.7rem 0.8rem;
+    padding: 0.38rem 0.55rem;
     border: 1px solid var(--line);
-    border-radius: 10px;
+    border-radius: 8px;
     background: var(--bg);
     color: var(--text);
     font: inherit;
+    font-size: 0.9rem;
+    line-height: 1.25;
 }
 
 .modal-form ul {
@@ -536,17 +573,88 @@ a.btn {
     gap: 0.5rem;
 }
 
+.invite-form,
+.settings-form {
+    max-width: 32rem;
+    margin-bottom: 1.5rem;
+}
+
+.field-hint {
+    margin: 0 0 0.35rem;
+    color: var(--muted);
+    font-size: 0.75rem;
+    line-height: 1.25;
+}
+
+.invite-banner {
+    margin: 0 0 1rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--bg) 88%, #2f6fed 12%);
+    font-size: 0.92rem;
+}
+
+.team-invited-by {
+    margin: 1rem 0 0;
+    color: var(--muted);
+}
+
+.pages-block {
+    display: grid;
+    gap: 0.35rem;
+    margin-top: 0.2rem;
+    padding-top: 0.35rem;
+    border-top: 1px solid var(--line);
+}
+
+.pages-block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.pages-list {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.page-row-fields {
+    display: grid;
+    grid-template-columns: 4.5rem 1fr auto;
+    gap: 0.4rem;
+    align-items: end;
+}
+
+.page-row-fields label {
+    font-size: 0.75rem;
+}
+
+.page-code-field input {
+    text-transform: lowercase;
+    letter-spacing: 0.04em;
+    text-align: center;
+}
+
+.page-remove {
+    margin-bottom: 0.2rem;
+    font-size: 0.8rem;
+}
+
 .btn-compact {
     margin-top: 0;
     white-space: nowrap;
-    padding: 0.7rem 0.75rem;
-    font-size: 0.85rem;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.8rem;
 }
 
 .field-status {
-    min-height: 1.2rem;
+    min-height: 0.95rem;
     margin: 0;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
 }
 
 .field-status.is-success {
@@ -568,13 +676,15 @@ a.btn {
 
 .modal-actions {
     display: flex;
-    gap: 0.65rem;
-    margin-top: 0.75rem;
+    gap: 0.5rem;
+    margin-top: 0.45rem;
 }
 
 .modal-actions .btn {
     margin-top: 0;
     flex: 1;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.9rem;
 }
 
 .confirm-text {
@@ -637,6 +747,20 @@ a.btn {
 @media (max-width: 700px) {
     .key-row {
         grid-template-columns: 1fr;
+    }
+
+    .partner-contact-grid,
+    .reward-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .page-row-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .page-remove {
+        margin-bottom: 0;
+        justify-self: start;
     }
 }
 

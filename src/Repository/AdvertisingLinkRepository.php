@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\Entity\AdvertisingLink;
 use App\Entity\Partner;
+use App\Entity\PartnerPage;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -31,13 +32,13 @@ class AdvertisingLinkRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    public function isKeyAvailable(Partner $partner, string $linkKey): bool
+    public function isKeyAvailable(PartnerPage $partnerPage, string $linkKey): bool
     {
         $count = (int) $this->createQueryBuilder('l')
             ->select('COUNT(l.id)')
-            ->andWhere('l.partner = :partner')
+            ->andWhere('l.partnerPage = :page')
             ->andWhere('l.linkKey = :key')
-            ->setParameter('partner', $partner)
+            ->setParameter('page', $partnerPage)
             ->setParameter('key', $linkKey)
             ->getQuery()
             ->getSingleScalarResult();
@@ -55,15 +56,34 @@ class AdvertisingLinkRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
     }
 
-    /**
-     * @return array
-     */
-    public function findByLinkKey(string $linkKey): array
+    public function countByPartnerPage(PartnerPage $partnerPage): int
     {
-        return $this->createQueryBuilder('l')
-            ->andWhere('l.linkKey = :key')
-            ->setParameter('key', $linkKey)
+        return (int) $this->createQueryBuilder('l')
+            ->select('COUNT(l.id)')
+            ->andWhere('l.partnerPage = :page')
+            ->setParameter('page', $partnerPage)
             ->getQuery()
-            ->getResult();
+            ->getSingleScalarResult();
+    }
+
+    public function findOneByReferralKey(string $referralKey): ?AdvertisingLink
+    {
+        $referralKey = trim($referralKey);
+        if (strlen($referralKey) < 5) {
+            return null;
+        }
+
+        $code = strtolower(substr($referralKey, 0, 2));
+        $linkKey = substr($referralKey, 2);
+
+        return $this->createQueryBuilder('l')
+            ->innerJoin('l.partnerPage', 'p')
+            ->andWhere('p.code = :code')
+            ->andWhere('l.linkKey = :key')
+            ->setParameter('code', $code)
+            ->setParameter('key', $linkKey)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 }

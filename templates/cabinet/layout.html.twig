@@ -13,6 +13,8 @@
         <nav class="cabinet-nav">
             <a href="{{ path('app_cabinet') }}" class="nav-item{% if active_menu == 'account' %} is-active{% endif %}">{{ 'cabinet.menu.account'|trans }}</a>
             <a href="{{ path('app_cabinet_links') }}" class="nav-item{% if active_menu == 'links' %} is-active{% endif %}">{{ 'cabinet.menu.links'|trans }}</a>
+            <a href="{{ path('app_cabinet_invites') }}" class="nav-item{% if active_menu == 'invites' %} is-active{% endif %}">{{ 'cabinet.menu.invites'|trans }}</a>
+            <a href="{{ path('app_cabinet_team') }}" class="nav-item{% if active_menu == 'team' %} is-active{% endif %}">{{ 'cabinet.menu.team'|trans }}</a>
             <a href="{{ path('app_cabinet_finance') }}" class="nav-item{% if active_menu == 'finance' %} is-active{% endif %}">{{ 'cabinet.menu.finance'|trans }}</a>
         </nav>
 
