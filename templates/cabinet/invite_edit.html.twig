@@ -1,0 +1,20 @@
+{% extends 'cabinet/layout.html.twig' %}
+
+{% block title %}{{ 'cabinet.invites.edit_title'|trans }}{% endblock %}
+
+{% block cabinet_content %}
+<header class="content-header">
+    <h1>{{ 'cabinet.invites.edit_heading'|trans }}</h1>
+    <p>{{ 'cabinet.invites.edit_lead'|trans }}</p>
+</header>
+
+<section class="content-section">
+    {% include 'cabinet/_invite_form.html.twig' with {
+        form: form,
+        previewBaseUrl: previewBaseUrl,
+        submitLabel: 'cabinet.invites.form.save_edit',
+        exceptId: invite.id,
+        showBack: true,
+    } %}
+</section>
+{% endblock %}

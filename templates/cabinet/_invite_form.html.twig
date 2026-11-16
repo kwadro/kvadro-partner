@@ -1,0 +1,47 @@
+{% set exceptId = exceptId|default(0) %}
+
+{{ form_start(form, {
+    attr: {
+        class: 'modal-form invite-form',
+        'data-controller': 'invite-form',
+        'data-invite-form-check-url-value': path('app_cabinet_invite_check_key'),
+        'data-invite-form-preview-base-url-value': previewBaseUrl,
+        'data-invite-form-except-id-value': exceptId,
+        'data-invite-form-msg-key-available-value': 'cabinet.invites.form.key_available'|trans,
+        'data-invite-form-msg-key-taken-value': 'cabinet.invites.form.key_taken'|trans,
+        'data-invite-form-msg-key-required-value': 'cabinet.invites.form.key_required'|trans,
+        'data-invite-form-msg-key-invalid-value': 'cabinet.invites.form.key_invalid'|trans,
+        'data-invite-form-msg-error-value': 'cabinet.invites.form.error'|trans,
+    }
+}) }}
+    {{ form_row(form.title) }}
+
+    {{ form_label(form.linkKey) }}
+    <div class="key-row">
+        {{ form_widget(form.linkKey, {
+            attr: {
+                'data-invite-form-target': 'keyInput',
+                'data-action': 'input->invite-form#onKeyChange',
+            }
+        }) }}
+        <button type="button" class="btn btn-secondary btn-compact" data-action="invite-form#checkKey">
+            {{ 'cabinet.invites.form.check'|trans }}
+        </button>
+        <button type="button" class="btn btn-secondary btn-compact" data-action="invite-form#generateKey">
+            {{ 'cabinet.invites.form.generate'|trans }}
+        </button>
+    </div>
+    {{ form_errors(form.linkKey) }}
+
+    <p class="field-status" data-invite-form-target="status"></p>
+
+    <label>{{ 'cabinet.invites.form.result'|trans }}</label>
+    <p class="preview-url mono" data-invite-form-target="preview">—</p>
+
+    <div class="modal-actions">
+        <button type="submit" class="btn btn-primary">{{ submitLabel|trans }}</button>
+        {% if showBack|default(false) %}
+            <a href="{{ path('app_cabinet_invites') }}" class="btn btn-secondary">{{ 'cabinet.invites.form.back'|trans }}</a>
+        {% endif %}
+    </div>
+{{ form_end(form) }}
