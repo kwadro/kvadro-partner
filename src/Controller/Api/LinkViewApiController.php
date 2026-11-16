@@ -83,7 +83,7 @@ class LinkViewApiController extends AbstractController
             ], 404);
         }
 
-        $ipAddress = $request->getClientIp();
+        $ipAddress = $payload['ip_address'];
         $visitorId = $this->resolveVisitorId($payload);
         $isUnique = null === $ipAddress
             || !$this->linkViewRepository->hasViewFromIp($advertisingLink, $ipAddress);
@@ -129,6 +129,7 @@ class LinkViewApiController extends AbstractController
 
     /**
      * @param array $payload
+     * @return string|null
      */
     private function resolveVisitorId(array $payload): ?string
     {
