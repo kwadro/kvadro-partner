@@ -177,9 +177,14 @@ class AdvertisingLink
         return $this->partnerPage->buildReferralUrl($this->linkKey);
     }
 
+    public function canBeEdited(): bool
+    {
+        return 0 === $this->clicks;
+    }
+
     public function canBeDeleted(): bool
     {
-        return 0 === $this->clicks
+        return $this->canBeEdited()
             && 0 === $this->orders
             && 0.0 === (float) $this->reward;
     }

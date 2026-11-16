@@ -8,6 +8,7 @@
     data-link-form-partners-value="{{ partners|json_encode|e('html_attr') }}"
     data-link-form-check-url-value="{{ path('app_cabinet_link_check_key') }}"
     data-link-form-create-url-value="{{ path('app_cabinet_link_create') }}"
+    data-link-form-update-url-template-value="{{ path('app_cabinet_links') }}/__ID__/update"
     data-link-form-detail-url-template-value="{{ path('app_cabinet_links') }}/__ID__"
     data-link-form-delete-url-template-value="{{ path('app_cabinet_links') }}/__ID__/delete"
     data-link-form-empty-text-value="{{ 'cabinet.links.empty'|trans }}"
@@ -21,14 +22,20 @@
     data-link-form-msg-product-name-required-value="{{ 'cabinet.links.popup.product_name_required'|trans }}"
     data-link-form-msg-unsaved-value="{{ 'cabinet.links.popup.unsaved'|trans }}"
     data-link-form-msg-saved-value="{{ 'cabinet.links.popup.saved'|trans }}"
+    data-link-form-msg-updated-value="{{ 'cabinet.links.edit.success'|trans }}"
     data-link-form-msg-error-value="{{ 'cabinet.links.popup.error'|trans }}"
     data-link-form-msg-open-value="{{ 'cabinet.links.open'|trans }}"
+    data-link-form-msg-edit-value="{{ 'cabinet.links.edit_button'|trans }}"
     data-link-form-msg-delete-value="{{ 'cabinet.links.delete_button'|trans }}"
     data-link-form-msg-delete-confirm-value="{{ 'cabinet.links.delete_confirm'|trans }}"
     data-link-form-msg-delete-success-value="{{ 'cabinet.links.delete.success'|trans }}"
     data-link-form-msg-delete-forbidden-value="{{ 'cabinet.links.delete.forbidden'|trans }}"
     data-link-form-msg-delete-not-found-value="{{ 'cabinet.links.delete.not_found'|trans }}"
+    data-link-form-msg-edit-forbidden-value="{{ 'cabinet.links.edit.forbidden'|trans }}"
+    data-link-form-msg-edit-not-found-value="{{ 'cabinet.links.edit.not_found'|trans }}"
     data-link-form-msg-page-placeholder-value="{{ 'cabinet.links.popup.page_placeholder'|trans }}"
+    data-link-form-msg-title-create-value="{{ 'cabinet.links.popup.title'|trans }}"
+    data-link-form-msg-title-edit-value="{{ 'cabinet.links.popup.title_edit'|trans }}"
 >
     <header class="content-header">
         <h1>{{ 'cabinet.links.heading'|trans }}</h1>
@@ -60,7 +67,13 @@
             </thead>
             <tbody data-link-form-target="tableBody">
                 {% for link in links %}
-                    <tr data-link-id="{{ link.id }}">
+                    <tr
+                        data-link-id="{{ link.id }}"
+                        data-partner-id="{{ link.partner.id }}"
+                        data-page-id="{{ link.partnerPage ? link.partnerPage.id : '' }}"
+                        data-product-name="{{ link.productName }}"
+                        data-link-key="{{ link.linkKey }}"
+                    >
                         <td>{{ link.partner.name }}</td>
                         <td>{{ link.productName }}</td>
                         <td>{{ link.partnerPage ? link.partnerPage.code : '—' }}</td>
@@ -71,12 +84,22 @@
                         <td>{{ link.reward }} {{ 'cabinet.account.currency'|trans }}</td>
                         <td class="row-actions">
                             <a href="{{ path('app_cabinet_link_show', { id: link.id }) }}">{{ 'cabinet.links.open'|trans }}</a>
-                            <button
-                                type="button"
-                                class="btn-link-danger"
-                                data-action="link-form#deleteLink"
-                                data-link-id="{{ link.id }}"
-                            >{{ 'cabinet.links.delete_button'|trans }}</button>
+                            {% if link.canBeEdited %}
+                                <button
+                                    type="button"
+                                    class="btn-link-action"
+                                    data-action="link-form#openEdit"
+                                    data-link-id="{{ link.id }}"
+                                >{{ 'cabinet.links.edit_button'|trans }}</button>
+                            {% endif %}
+                            {% if link.canBeDeleted %}
+                                <button
+                                    type="button"
+                                    class="btn-link-danger"
+                                    data-action="link-form#deleteLink"
+                                    data-link-id="{{ link.id }}"
+                                >{{ 'cabinet.links.delete_button'|trans }}</button>
+                            {% endif %}
                         </td>
                     </tr>
                 {% else %}
@@ -90,7 +113,7 @@
 
     <div class="modal-backdrop is-hidden" data-link-form-target="modal" data-action="click->link-form#backdropClose">
         <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="create-link-title" data-action="click->link-form#stopPropagation">
-            <h2 id="create-link-title">{{ 'cabinet.links.popup.title'|trans }}</h2>
+            <h2 id="create-link-title" data-link-form-target="modalTitle">{{ 'cabinet.links.popup.title'|trans }}</h2>
 
             <form class="modal-form" data-link-form-target="form" data-action="submit->link-form#save">
                 <label for="partner-select">{{ 'cabinet.links.popup.partner'|trans }}</label>

@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\AdvertisingLink;
 use App\Entity\User;
 use App\Repository\AdvertisingLinkRepository;
+use App\Repository\LinkViewRepository;
 use App\Repository\PartnerPageRepository;
 use App\Repository\PartnerRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -23,6 +24,7 @@ class CabinetController extends AbstractController
         private PartnerRepository $partnerRepository,
         private PartnerPageRepository $partnerPageRepository,
         private AdvertisingLinkRepository $advertisingLinkRepository,
+        private LinkViewRepository $linkViewRepository,
         private EntityManagerInterface $entityManager,
     ) {
     }
@@ -79,6 +81,7 @@ class CabinetController extends AbstractController
         $payload = $this->decodeJson($request);
         $pageId = (int) ($payload['pageId'] ?? 0);
         $linkKey = trim((string) ($payload['linkKey'] ?? ''));
+        $exceptId = (int) ($payload['exceptId'] ?? 0);
 
         if ($pageId < 1 || '' === $linkKey) {
             return $this->json([
@@ -105,7 +108,8 @@ class CabinetController extends AbstractController
             ], 404);
         }
 
-        $available = $this->advertisingLinkRepository->isKeyAvailable($page, $linkKey);
+        $except = $exceptId > 0 ? $this->advertisingLinkRepository->find($exceptId) : null;
+        $available = $this->advertisingLinkRepository->isKeyAvailable($page, $linkKey, $except);
 
         return $this->json([
             'ok' => true,
@@ -177,18 +181,83 @@ class CabinetController extends AbstractController
         return $this->json([
             'ok' => true,
             'message' => 'cabinet.links.popup.saved',
-            'link' => [
-                'id' => $link->getId(),
-                'url' => $link->getUrl(),
-                'linkKey' => $link->getLinkKey(),
-                'productName' => $link->getProductName(),
-                'referralKey' => $link->getReferralKey(),
-                'pageCode' => $page->getCode(),
-                'partnerName' => $partner->getName(),
-                'clicks' => $link->getClicks(),
-                'orders' => $link->getOrders(),
-                'reward' => $link->getReward(),
-            ],
+            'link' => $this->serializeLink($link),
+        ]);
+    }
+
+    #[Route('/links/{id}/update', name: 'app_cabinet_link_update', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function updateLink(int $id, Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+        $link = $this->advertisingLinkRepository->find($id);
+
+        if (!$link || $link->getUser()?->getId() !== $user->getId()) {
+            return $this->json([
+                'ok' => false,
+                'message' => 'cabinet.links.edit.not_found',
+            ], 404);
+        }
+
+        if (!$link->canBeEdited()) {
+            return $this->json([
+                'ok' => false,
+                'message' => 'cabinet.links.edit.forbidden',
+            ], 409);
+        }
+
+        $payload = $this->decodeJson($request);
+        $pageId = (int) ($payload['pageId'] ?? 0);
+        $linkKey = trim((string) ($payload['linkKey'] ?? ''));
+        $productName = trim((string) ($payload['productName'] ?? ''));
+
+        if ($pageId < 1) {
+            return $this->json([
+                'ok' => false,
+                'message' => 'cabinet.links.popup.page_required',
+            ], 400);
+        }
+
+        if ('' === $productName || mb_strlen($productName) > 180) {
+            return $this->json([
+                'ok' => false,
+                'message' => 'cabinet.links.popup.product_name_required',
+            ], 400);
+        }
+
+        if ('' === $linkKey || !$this->isValidLinkKey($linkKey)) {
+            return $this->json([
+                'ok' => false,
+                'message' => 'cabinet.links.popup.key_invalid',
+            ], 400);
+        }
+
+        $page = $this->partnerPageRepository->find($pageId);
+        if (!$page || !$page->getPartner()) {
+            return $this->json([
+                'ok' => false,
+                'message' => 'cabinet.links.popup.page_required',
+            ], 404);
+        }
+
+        if (!$this->advertisingLinkRepository->isKeyAvailable($page, $linkKey, $link)) {
+            return $this->json([
+                'ok' => false,
+                'message' => 'cabinet.links.popup.key_taken',
+            ], 409);
+        }
+
+        $link
+            ->setPartnerPage($page)
+            ->setProductName($productName)
+            ->setLinkKey($linkKey);
+
+        $this->entityManager->flush();
+
+        return $this->json([
+            'ok' => true,
+            'message' => 'cabinet.links.edit.success',
+            'link' => $this->serializeLink($link),
         ]);
     }
 
@@ -223,7 +292,7 @@ class CabinetController extends AbstractController
     }
 
     #[Route('/links/{id}', name: 'app_cabinet_link_show', requirements: ['id' => '\d+'])]
-    public function linkShow(int $id): Response
+    public function linkShow(int $id, Request $request): Response
     {
         /** @var User $user */
         $user = $this->getUser();
@@ -233,6 +302,14 @@ class CabinetController extends AbstractController
             throw $this->createNotFoundException('Advertising link not found.');
         }
 
+        $filters = [
+            'date' => trim((string) $request->query->get('date', '')),
+            'ip' => trim((string) $request->query->get('ip', '')),
+            'visitor_id' => trim((string) $request->query->get('visitor_id', '')),
+        ];
+        $page = max(1, (int) $request->query->get('page', 1));
+        $views = $this->linkViewRepository->findFilteredForLink($link, $filters, $page, 10);
+
         return $this->render('cabinet/link_show.html.twig', [
             'active_menu' => 'links',
             'link' => [
@@ -241,13 +318,14 @@ class CabinetController extends AbstractController
                 'product_name' => $link->getProductName(),
                 'url' => $link->getUrl(),
                 'clicks' => $link->getClicks(),
-                'unique_visitors' => 0,
+                'unique_visitors' => $this->linkViewRepository->countUniqueIps($link),
                 'orders' => $link->getOrders(),
                 'reward' => $link->getReward(),
                 'created_at' => $link->getCreatedAt()->format('Y-m-d'),
-                'activity' => [],
                 'purchases' => [],
             ],
+            'filters' => $filters,
+            'views' => $views,
         ]);
     }
 
@@ -309,6 +387,32 @@ class CabinetController extends AbstractController
             'active_menu' => 'finance',
             'operations' => $operations,
         ]);
+    }
+
+    /**
+     * @return array
+     */
+    private function serializeLink(AdvertisingLink $link): array
+    {
+        $page = $link->getPartnerPage();
+        $partner = $page?->getPartner();
+
+        return [
+            'id' => $link->getId(),
+            'url' => $link->getUrl(),
+            'linkKey' => $link->getLinkKey(),
+            'productName' => $link->getProductName(),
+            'referralKey' => $link->getReferralKey(),
+            'pageId' => $page?->getId(),
+            'pageCode' => $page?->getCode(),
+            'partnerId' => $partner?->getId(),
+            'partnerName' => $partner?->getName(),
+            'clicks' => $link->getClicks(),
+            'orders' => $link->getOrders(),
+            'reward' => $link->getReward(),
+            'canEdit' => $link->canBeEdited(),
+            'canDelete' => $link->canBeDeleted(),
+        ];
     }
 
     /**

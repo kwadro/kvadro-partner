@@ -19,11 +19,17 @@
         </nav>
 
         <div class="sidebar-footer">
-            <a href="{{ path('app_logout') }}" class="nav-item nav-logout">{{ 'nav.logout'|trans }}</a>
+            <a href="{{ path('app_logout') }}" class="nav-item nav-logout" data-turbo="false">{{ 'nav.logout'|trans }}</a>
         </div>
     </aside>
 
     <main class="cabinet-content">
+        {% for message in app.flashes('success') %}
+            <p class="list-status is-success">{{ message|trans }}</p>
+        {% endfor %}
+        {% for message in app.flashes('error') %}
+            <p class="list-status is-error">{{ message|trans }}</p>
+        {% endfor %}
         {% block cabinet_content %}{% endblock %}
     </main>
 </div>

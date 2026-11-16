@@ -39,12 +39,17 @@ class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
 
         $request->getSession()->set(SecurityRequestAttributes::LAST_USERNAME, $email);
 
+        $rememberMe = new RememberMeBadge();
+        if ($request->request->has('_remember_me')) {
+            $rememberMe->enable();
+        }
+
         return new Passport(
             new UserBadge($email),
             new PasswordCredentials((string) $request->request->get('password', '')),
             [
                 new CsrfTokenBadge('authenticate', (string) $request->request->get('_csrf_token')),
-                new RememberMeBadge(),
+                $rememberMe,
             ]
         );
     }

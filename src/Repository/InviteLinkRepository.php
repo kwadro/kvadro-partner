@@ -35,8 +35,15 @@ class InviteLinkRepository extends ServiceEntityRepository
         return $this->findOneBy(['linkKey' => $linkKey]);
     }
 
-    public function isKeyAvailable(string $linkKey): bool
+    public function isKeyAvailable(string $linkKey, ?InviteLink $except = null): bool
     {
-        return null === $this->findOneByLinkKey($linkKey);
+        $existing = $this->findOneByLinkKey($linkKey);
+        if (null === $existing) {
+            return true;
+        }
+
+        return null !== $except
+            && null !== $except->getId()
+            && $existing->getId() === $except->getId();
     }
 }

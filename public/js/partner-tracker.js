@@ -19,6 +19,7 @@
 
     var COOKIE_NAME = 'bb_ref';
     var COOKIE_ID_NAME = 'bb_ref_id';
+    var COOKIE_VISITOR_NAME = 'bb_vid';
     var COOKIE_DAYS = 30;
     // Combined key = 2-char page code + client link key (3–64)
     var KEY_PATTERN = /^[a-zA-Z0-9_-]{5,66}$/;
@@ -153,6 +154,28 @@
         return null;
     }
 
+    function createVisitorId() {
+        if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+            return window.crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+        }
+        var alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        var id = '';
+        for (var i = 0; i < 24; i++) {
+            id += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+        }
+        return id;
+    }
+
+    function getOrCreateVisitorId() {
+        var existing = getCookie(COOKIE_VISITOR_NAME);
+        if (existing) {
+            return existing;
+        }
+        var visitorId = createVisitorId();
+        setCookie(COOKIE_VISITOR_NAME, visitorId, COOKIE_DAYS);
+        return visitorId;
+    }
+
     function registerView(apiBase, key, pageUrl) {
         var storageKey = 'bb_view_sent_' + key;
         try {
@@ -163,6 +186,8 @@
             // sessionStorage may be unavailable
         }
 
+        var visitorId = getOrCreateVisitorId();
+
         return fetch(apiBase + '/api/views', {
             method: 'POST',
             headers: {
@@ -172,6 +197,7 @@
             body: JSON.stringify({
                 key: key,
                 url: pageUrl || window.location.href,
+                visitor_id: visitorId,
             }),
             credentials: 'omit',
             mode: 'cors',
@@ -217,6 +243,7 @@
     window.BringBuyer = {
         cookieName: COOKIE_NAME,
         cookieIdName: COOKIE_ID_NAME,
+        visitorCookieName: COOKIE_VISITOR_NAME,
         parseReferralFromUrl: parseReferralFromUrl,
         parseReferralKey: parseReferralKey,
         getReferralKey: function () {
@@ -225,6 +252,9 @@
         getReferralParts: function () {
             var key = getCookie(COOKIE_NAME);
             return key ? parseReferralKey(key) : null;
+        },
+        getVisitorId: function () {
+            return getOrCreateVisitorId();
         },
         getAdvertisingLinkId: function () {
             return getCookie(COOKIE_ID_NAME);

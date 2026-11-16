@@ -5,6 +5,7 @@ export default class extends Controller {
         'modal',
         'confirmModal',
         'form',
+        'modalTitle',
         'partnerSelect',
         'pageSelect',
         'productNameInput',
@@ -20,6 +21,7 @@ export default class extends Controller {
         partners: Array,
         checkUrl: String,
         createUrl: String,
+        updateUrlTemplate: String,
         detailUrlTemplate: String,
         deleteUrlTemplate: String,
         emptyText: String,
@@ -33,26 +35,62 @@ export default class extends Controller {
         msgProductNameRequired: String,
         msgUnsaved: String,
         msgSaved: String,
+        msgUpdated: String,
         msgError: String,
         msgOpen: String,
+        msgEdit: String,
         msgDelete: String,
         msgDeleteConfirm: String,
         msgDeleteSuccess: String,
         msgDeleteForbidden: String,
         msgDeleteNotFound: String,
+        msgEditForbidden: String,
+        msgEditNotFound: String,
         msgPagePlaceholder: String,
+        msgTitleCreate: String,
+        msgTitleEdit: String,
     };
 
     connect() {
         this.dirty = false;
         this.initialSnapshot = '';
+        this.editingId = null;
     }
 
     open() {
+        this.editingId = null;
         this.resetForm();
+        this.setModalTitle(this.msgTitleCreateValue);
         this.clearListStatus();
         this.modalTarget.classList.remove('is-hidden');
         this.partnerSelectTarget.focus();
+    }
+
+    openEdit(event) {
+        event.preventDefault();
+        const button = event.currentTarget;
+        const linkId = button.dataset.linkId;
+        const row = this.tableBodyTarget.querySelector(`tr[data-link-id="${linkId}"]`);
+        if (!row || !linkId) {
+            return;
+        }
+
+        this.editingId = linkId;
+        this.clearListStatus();
+        this.clearStatus();
+        this.setModalTitle(this.msgTitleEditValue);
+
+        this.partnerSelectTarget.value = row.dataset.partnerId || '';
+        this.populatePages();
+        this.pageSelectTarget.value = row.dataset.pageId || '';
+        this.productNameInputTarget.value = row.dataset.productName || '';
+        this.keyInputTarget.value = row.dataset.linkKey || '';
+        this.updatePreview();
+        this.initialSnapshot = this.snapshot();
+        this.dirty = false;
+
+        this.modalTarget.classList.remove('is-hidden');
+        this.productNameInputTarget.focus();
     }
 
     requestClose() {
@@ -77,6 +115,8 @@ export default class extends Controller {
         this.modalTarget.classList.add('is-hidden');
         this.confirmModalTarget.classList.add('is-hidden');
         this.resetForm();
+        this.editingId = null;
+        this.setModalTitle(this.msgTitleCreateValue);
     }
 
     backdropClose(event) {
@@ -120,13 +160,18 @@ export default class extends Controller {
         }
 
         try {
+            const body = { pageId, linkKey };
+            if (this.editingId) {
+                body.exceptId = Number(this.editingId);
+            }
+
             const response = await fetch(this.checkUrlValue, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
-                body: JSON.stringify({ pageId, linkKey }),
+                body: JSON.stringify(body),
             });
             const data = await response.json();
             this.updatePreview();
@@ -182,8 +227,13 @@ export default class extends Controller {
             return;
         }
 
+        const isEdit = Boolean(this.editingId);
+        const url = isEdit
+            ? this.updateUrlTemplateValue.replace('__ID__', String(this.editingId))
+            : this.createUrlValue;
+
         try {
-            const response = await fetch(this.createUrlValue, {
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -198,11 +248,19 @@ export default class extends Controller {
                 return;
             }
 
-            this.prependRow(data.link);
+            if (isEdit) {
+                this.updateRow(data.link);
+            } else {
+                this.prependRow(data.link);
+            }
+
             this.dirty = false;
             this.initialSnapshot = this.snapshot();
             this.close();
-            this.setListStatus(this.msgSavedValue, 'success');
+            this.setListStatus(
+                isEdit ? this.msgUpdatedValue : this.msgSavedValue,
+                'success',
+            );
         } catch (error) {
             this.setStatus(this.msgErrorValue, 'error');
         }
@@ -257,9 +315,49 @@ export default class extends Controller {
             this.emptyRowTarget.remove();
         }
 
-        const detailUrl = this.detailUrlTemplateValue.replace('__ID__', String(link.id));
         const row = document.createElement('tr');
+        this.fillRow(row, link);
+        this.tableBodyTarget.prepend(row);
+    }
+
+    updateRow(link) {
+        const row = this.tableBodyTarget.querySelector(`tr[data-link-id="${link.id}"]`);
+        if (!row) {
+            this.prependRow(link);
+            return;
+        }
+
+        this.fillRow(row, link);
+    }
+
+    fillRow(row, link) {
+        const detailUrl = this.detailUrlTemplateValue.replace('__ID__', String(link.id));
         row.dataset.linkId = String(link.id);
+        row.dataset.partnerId = String(link.partnerId || '');
+        row.dataset.pageId = String(link.pageId || '');
+        row.dataset.productName = link.productName || '';
+        row.dataset.linkKey = link.linkKey || '';
+
+        let actions = `<a href="${this.escapeHtml(detailUrl)}">${this.escapeHtml(this.msgOpenValue)}</a>`;
+        if (link.canEdit) {
+            actions += `
+                <button
+                    type="button"
+                    class="btn-link-action"
+                    data-action="link-form#openEdit"
+                    data-link-id="${this.escapeHtml(String(link.id))}"
+                >${this.escapeHtml(this.msgEditValue)}</button>`;
+        }
+        if (link.canDelete) {
+            actions += `
+                <button
+                    type="button"
+                    class="btn-link-danger"
+                    data-action="link-form#deleteLink"
+                    data-link-id="${this.escapeHtml(String(link.id))}"
+                >${this.escapeHtml(this.msgDeleteValue)}</button>`;
+        }
+
         row.innerHTML = `
             <td>${this.escapeHtml(link.partnerName)}</td>
             <td>${this.escapeHtml(link.productName || '—')}</td>
@@ -269,17 +367,8 @@ export default class extends Controller {
             <td>${this.escapeHtml(String(link.clicks))}</td>
             <td>${this.escapeHtml(String(link.orders))}</td>
             <td>${this.escapeHtml(String(link.reward))} ${this.escapeHtml(this.currencyValue)}</td>
-            <td class="row-actions">
-                <a href="${this.escapeHtml(detailUrl)}">${this.escapeHtml(this.msgOpenValue)}</a>
-                <button
-                    type="button"
-                    class="btn-link-danger"
-                    data-action="link-form#deleteLink"
-                    data-link-id="${this.escapeHtml(String(link.id))}"
-                >${this.escapeHtml(this.msgDeleteValue)}</button>
-            </td>
+            <td class="row-actions">${actions}</td>
         `;
-        this.tableBodyTarget.prepend(row);
     }
 
     ensureEmptyRow() {
@@ -348,6 +437,12 @@ export default class extends Controller {
         this.dirty = false;
     }
 
+    setModalTitle(title) {
+        if (this.hasModalTitleTarget) {
+            this.modalTitleTarget.textContent = title;
+        }
+    }
+
     snapshot() {
         return [
             this.partnerSelectTarget.value,
@@ -398,6 +493,9 @@ export default class extends Controller {
             'cabinet.links.delete.success': this.msgDeleteSuccessValue,
             'cabinet.links.delete.forbidden': this.msgDeleteForbiddenValue,
             'cabinet.links.delete.not_found': this.msgDeleteNotFoundValue,
+            'cabinet.links.edit.success': this.msgUpdatedValue,
+            'cabinet.links.edit.forbidden': this.msgEditForbiddenValue,
+            'cabinet.links.edit.not_found': this.msgEditNotFoundValue,
         };
 
         return map[key] || null;

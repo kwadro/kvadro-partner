@@ -7,6 +7,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: LinkViewRepository::class)]
 #[ORM\Table(name: 'link_views')]
+#[ORM\Index(name: 'idx_link_view_link_ip', columns: ['advertising_link_id', 'ip_address'])]
 class LinkView
 {
     #[ORM\Id]
@@ -17,6 +18,12 @@ class LinkView
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
     private ?AdvertisingLink $advertisingLink = null;
+
+    #[ORM\Column(length: 45, nullable: true)]
+    private ?string $ipAddress = null;
+
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $visitorId = null;
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
@@ -39,6 +46,30 @@ class LinkView
     public function setAdvertisingLink(?AdvertisingLink $advertisingLink): static
     {
         $this->advertisingLink = $advertisingLink;
+
+        return $this;
+    }
+
+    public function getIpAddress(): ?string
+    {
+        return $this->ipAddress;
+    }
+
+    public function setIpAddress(?string $ipAddress): static
+    {
+        $this->ipAddress = $ipAddress;
+
+        return $this;
+    }
+
+    public function getVisitorId(): ?string
+    {
+        return $this->visitorId;
+    }
+
+    public function setVisitorId(?string $visitorId): static
+    {
+        $this->visitorId = $visitorId;
 
         return $this;
     }

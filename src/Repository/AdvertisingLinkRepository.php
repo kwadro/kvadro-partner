@@ -32,18 +32,24 @@ class AdvertisingLinkRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    public function isKeyAvailable(PartnerPage $partnerPage, string $linkKey): bool
-    {
-        $count = (int) $this->createQueryBuilder('l')
+    public function isKeyAvailable(
+        PartnerPage $partnerPage,
+        string $linkKey,
+        ?AdvertisingLink $except = null,
+    ): bool {
+        $qb = $this->createQueryBuilder('l')
             ->select('COUNT(l.id)')
             ->andWhere('l.partnerPage = :page')
             ->andWhere('l.linkKey = :key')
             ->setParameter('page', $partnerPage)
-            ->setParameter('key', $linkKey)
-            ->getQuery()
-            ->getSingleScalarResult();
+            ->setParameter('key', $linkKey);
 
-        return 0 === $count;
+        if (null !== $except && null !== $except->getId()) {
+            $qb->andWhere('l.id != :exceptId')
+                ->setParameter('exceptId', $except->getId());
+        }
+
+        return 0 === (int) $qb->getQuery()->getSingleScalarResult();
     }
 
     public function countByPartner(Partner $partner): int

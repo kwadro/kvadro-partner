@@ -5,9 +5,11 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Form\RegistrationFormType;
 use App\Repository\InviteLinkRepository;
+use App\Security\LoginFormAuthenticator;
 use App\Service\PartnerOnboardingService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -28,6 +30,7 @@ class RegistrationController extends AbstractController
         Request $request,
         UserPasswordHasherInterface $passwordHasher,
         EntityManagerInterface $entityManager,
+        Security $security,
     ): Response {
         if ($this->getUser()) {
             return $this->redirectToRoute('app_cabinet');
@@ -59,9 +62,11 @@ class RegistrationController extends AbstractController
             $entityManager->flush();
 
             $request->getSession()->remove(self::INVITE_SESSION_KEY);
+
+            $security->login($user, LoginFormAuthenticator::class, 'main');
             $this->addFlash('success', 'register.success');
 
-            return $this->redirectToRoute('app_login');
+            return $this->redirectToRoute('app_cabinet');
         }
 
         return $this->render('registration/register.html.twig', [

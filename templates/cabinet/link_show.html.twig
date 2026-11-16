@@ -30,30 +30,74 @@
     </div>
 
     <h2>{{ 'cabinet.link.activity'|trans }}</h2>
+
+    <form class="activity-filter" method="get" action="{{ path('app_cabinet_link_show', { id: link.id }) }}">
+        <div class="activity-filter-grid">
+            <div class="activity-filter-field">
+                <label for="filter-date">{{ 'cabinet.link.date'|trans }}</label>
+                <input type="date" id="filter-date" name="date" value="{{ filters.date }}">
+            </div>
+            <div class="activity-filter-field">
+                <label for="filter-ip">{{ 'cabinet.link.ip_address'|trans }}</label>
+                <input type="text" id="filter-ip" name="ip" value="{{ filters.ip }}" placeholder="127.0.0.1">
+            </div>
+            <div class="activity-filter-field">
+                <label for="filter-visitor-id">{{ 'cabinet.link.visitor_id'|trans }}</label>
+                <input type="text" id="filter-visitor-id" name="visitor_id" value="{{ filters.visitor_id }}" placeholder="visitor_id">
+            </div>
+            <div class="activity-filter-actions">
+                <button type="submit" class="btn btn-primary btn-compact">{{ 'cabinet.link.filter_apply'|trans }}</button>
+                <a class="btn btn-secondary btn-compact" href="{{ path('app_cabinet_link_show', { id: link.id }) }}">{{ 'cabinet.link.filter_reset'|trans }}</a>
+            </div>
+        </div>
+    </form>
+
     <table class="data-table">
         <thead>
             <tr>
                 <th>{{ 'cabinet.link.date'|trans }}</th>
-                <th>{{ 'cabinet.link.clicks'|trans }}</th>
-                <th>{{ 'cabinet.link.orders'|trans }}</th>
-                <th>{{ 'cabinet.link.reward'|trans }}</th>
+                <th>{{ 'cabinet.link.ip_address'|trans }}</th>
+                <th>{{ 'cabinet.link.visitor_id'|trans }}</th>
             </tr>
         </thead>
         <tbody>
-            {% for row in link.activity %}
+            {% for view in views.items %}
                 <tr>
-                    <td>{{ row.date }}</td>
-                    <td>{{ row.clicks }}</td>
-                    <td>{{ row.orders }}</td>
-                    <td>{{ row.reward }} {{ 'cabinet.account.currency'|trans }}</td>
+                    <td>{{ view.createdAt|date('Y-m-d H:i:s') }}</td>
+                    <td class="mono">{{ view.ipAddress ?: '—' }}</td>
+                    <td class="mono">{{ view.visitorId ?: '—' }}</td>
                 </tr>
             {% else %}
                 <tr>
-                    <td colspan="4">{{ 'cabinet.link.no_activity'|trans }}</td>
+                    <td colspan="3">{{ 'cabinet.link.no_activity'|trans }}</td>
                 </tr>
             {% endfor %}
         </tbody>
     </table>
+
+    {% if views.pages > 1 %}
+        <nav class="pagination" aria-label="Pagination">
+            {% if views.page > 1 %}
+                <a class="pagination-link" href="{{ path('app_cabinet_link_show', filters|merge({ id: link.id, page: views.page - 1 })) }}">
+                    {{ 'cabinet.link.prev'|trans }}
+                </a>
+            {% endif %}
+
+            <span class="pagination-status">
+                {{ 'cabinet.link.page_status'|trans({ '%page%': views.page, '%pages%': views.pages, '%total%': views.total }) }}
+            </span>
+
+            {% if views.page < views.pages %}
+                <a class="pagination-link" href="{{ path('app_cabinet_link_show', filters|merge({ id: link.id, page: views.page + 1 })) }}">
+                    {{ 'cabinet.link.next'|trans }}
+                </a>
+            {% endif %}
+        </nav>
+    {% elseif views.total > 0 %}
+        <p class="pagination-status-alone">
+            {{ 'cabinet.link.page_status'|trans({ '%page%': views.page, '%pages%': views.pages, '%total%': views.total }) }}
+        </p>
+    {% endif %}
 
     <h2>{{ 'cabinet.link.purchases'|trans }}</h2>
     <table class="data-table">

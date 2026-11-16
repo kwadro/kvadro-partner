@@ -28,7 +28,8 @@ security:
                 target: app_admin_login
             remember_me:
                 secret: '%kernel.secret%'
-                lifetime: 604800
+                lifetime: 2592000
+                path: /
                 name: REMEMBERME_ADMIN
                 remember_me_parameter: _remember_me
 
@@ -42,7 +43,8 @@ security:
                 target: app_home
             remember_me:
                 secret: '%kernel.secret%'
-                lifetime: 604800
+                lifetime: 2592000
+                path: /
                 name: REMEMBERME_USER
                 remember_me_parameter: _remember_me
 

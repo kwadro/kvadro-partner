@@ -8,23 +8,16 @@
     <p>{{ 'cabinet.invites.lead'|trans }}</p>
 </header>
 
-{% for message in app.flashes('success') %}
-    <p class="list-status is-success">{{ message|trans }}</p>
-{% endfor %}
-{% for message in app.flashes('error') %}
-    <p class="list-status is-error">{{ message|trans }}</p>
-{% endfor %}
-
 <section class="content-section">
     <h2>{{ 'cabinet.invites.form.heading'|trans }}</h2>
 
-    {{ form_start(form, { attr: { class: 'modal-form invite-form' } }) }}
-        {{ form_row(form.title) }}
-        {{ form_row(form.linkKey) }}
-        <div class="modal-actions">
-            <button type="submit" class="btn btn-primary">{{ 'cabinet.invites.form.save'|trans }}</button>
-        </div>
-    {{ form_end(form) }}
+    {% include 'cabinet/_invite_form.html.twig' with {
+        form: form,
+        previewBaseUrl: previewBaseUrl,
+        submitLabel: 'cabinet.invites.form.save',
+        exceptId: 0,
+        showBack: false,
+    } %}
 </section>
 
 <section class="content-section">
@@ -50,10 +43,15 @@
                     <td>{{ link.registrations }}</td>
                     <td>{{ link.createdAt }}</td>
                     <td class="row-actions">
-                        <form method="post" action="{{ path('app_cabinet_invite_delete', { id: link.id }) }}" onsubmit="return confirm('{{ 'cabinet.invites.delete_confirm'|trans|e('js') }}');">
-                            <input type="hidden" name="_token" value="{{ csrf_token('delete_invite_' ~ link.id) }}">
-                            <button type="submit" class="btn-link-danger">{{ 'cabinet.invites.delete'|trans }}</button>
-                        </form>
+                        {% if link.canEdit %}
+                            <a href="{{ path('app_cabinet_invite_edit', { id: link.id }) }}" class="btn-link-action">{{ 'cabinet.invites.edit'|trans }}</a>
+                        {% endif %}
+                        {% if link.canDelete %}
+                            <form method="post" action="{{ path('app_cabinet_invite_delete', { id: link.id }) }}" onsubmit="return confirm('{{ 'cabinet.invites.delete_confirm'|trans|e('js') }}');">
+                                <input type="hidden" name="_token" value="{{ csrf_token('delete_invite_' ~ link.id) }}">
+                                <button type="submit" class="btn-link-danger">{{ 'cabinet.invites.delete'|trans }}</button>
+                            </form>
+                        {% endif %}
                     </td>
                 </tr>
             {% else %}

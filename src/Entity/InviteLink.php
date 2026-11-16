@@ -100,4 +100,14 @@ class InviteLink
     {
         return $this->createdAt;
     }
+
+    public function canBeEdited(): bool
+    {
+        return 0 === $this->registrations;
+    }
+
+    public function canBeDeleted(): bool
+    {
+        return $this->canBeEdited();
+    }
 }
